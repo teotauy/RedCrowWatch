@@ -1,7 +1,15 @@
 # Gunicorn configuration for Railway deployment
 import os
 
-bind = f"0.0.0.0:{os.environ.get('PORT', 5000)}"
+# Get port from environment variable, default to 5000
+port = os.environ.get('PORT', '5000')
+try:
+    port = int(port)
+except ValueError:
+    print(f"Warning: Invalid PORT value '{port}', using default 5000")
+    port = 5000
+
+bind = f"0.0.0.0:{port}"
 workers = 1
 worker_class = "sync"
 worker_connections = 1000
