@@ -1,0 +1,450 @@
+{% extends "base.html" %}
+
+{% block title %}RedCrowWatch - Analysis Results{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <!-- Header -->
+        <div class="text-center mb-4">
+            <h1 class="display-5 fw-bold text-primary mb-2">
+                <i class="fas fa-chart-bar me-3"></i>
+                Analysis Results
+            </h1>
+            <p class="text-muted">Analysis ID: {{ analysis_id }}</p>
+        </div>
+
+        <!-- Summary Stats -->
+        <div class="row mb-4">
+            <div class="col-md-3 mb-3">
+                <div class="stats-card">
+                    <div class="stats-number">{{ summary.get('total_video_violations', 0) }}</div>
+                    <div class="small">Video Violations</div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="stats-card">
+                    <div class="stats-number">{{ summary.get('total_audio_events', 0) }}</div>
+                    <div class="small">Audio Events</div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="stats-card">
+                    <div class="stats-number">{{ summary.get('traffic_intensity_score', 0) | round(1) }}</div>
+                    <div class="small">Traffic Intensity</div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="stats-card">
+                    <div class="stats-number">{{ summary.get('safety_score', 0) | round(1) }}</div>
+                    <div class="small">Safety Score</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Detailed Breakdown -->
+        <div class="row mb-4">
+            <div class="col-md-6 mb-3">
+                <div class="card h-100">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-video me-2"></i>
+                            Video Violations
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-6">
+                                <div class="text-center">
+                                    <div class="h3 text-primary">{{ summary.get('total_video_violations', 0) }}</div>
+                                    <div class="small text-muted">Total Violations</div>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="text-center">
+                                    <div class="h3 text-success">{{ summary.get('horn_honks', 0) }}</div>
+                                    <div class="small text-muted">Horn Honks</div>
+                                </div>
+                            </div>
+                        </div>
+                        <hr>
+                        <div id="violationChart">
+                            <canvas id="violationChartCanvas" width="400" height="200"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 mb-3">
+                <div class="card h-100">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-volume-up me-2"></i>
+                            Audio Events
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-4">
+                                <div class="text-center">
+                                    <div class="h4 text-warning">{{ summary.get('horn_honks', 0) }}</div>
+                                    <div class="small text-muted">Horn Honks</div>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="text-center">
+                                    <div class="h4 text-info">{{ summary.get('sirens', 0) }}</div>
+                                    <div class="small text-muted">Sirens</div>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="text-center">
+                                    <div class="h4 text-danger">{{ summary.get('brake_squeals', 0) }}</div>
+                                    <div class="small text-muted">Brake Squeals</div>
+                                </div>
+                            </div>
+                        </div>
+                        <hr>
+                        <div id="audioChart">
+                            <canvas id="audioChartCanvas" width="400" height="200"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Visualizations -->
+        {% if dashboard_exists or heatmap_exists or summary_viz_exists %}
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-chart-pie me-2"></i>
+                            Visualizations
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            {% if dashboard_exists %}
+                            <div class="col-md-4 mb-3">
+                                <div class="text-center">
+                                    <h6>Comprehensive Dashboard</h6>
+                                    <img src="/download/{{ analysis_id }}/dashboard.png" class="img-fluid rounded" alt="Dashboard">
+                                    <div class="mt-2">
+                                        <a href="/download/{{ analysis_id }}/dashboard.png" class="btn btn-sm btn-outline-primary" download>
+                                            <i class="fas fa-download me-1"></i>Download
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+                            {% if heatmap_exists %}
+                            <div class="col-md-4 mb-3">
+                                <div class="text-center">
+                                    <h6>Violation Heatmap</h6>
+                                    <img src="/download/{{ analysis_id }}/heatmap.png" class="img-fluid rounded" alt="Heatmap">
+                                    <div class="mt-2">
+                                        <a href="/download/{{ analysis_id }}/heatmap.png" class="btn btn-sm btn-outline-primary" download>
+                                            <i class="fas fa-download me-1"></i>Download
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+                            {% if summary_viz_exists %}
+                            <div class="col-md-4 mb-3">
+                                <div class="text-center">
+                                    <h6>Daily Summary</h6>
+                                    <img src="/download/{{ analysis_id }}/daily_summary.png" class="img-fluid rounded" alt="Summary">
+                                    <div class="mt-2">
+                                        <a href="/download/{{ analysis_id }}/daily_summary.png" class="btn btn-sm btn-outline-primary" download>
+                                            <i class="fas fa-download me-1"></i>Download
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Data Tables -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <ul class="nav nav-tabs card-header-tabs" id="dataTabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="violations-tab" data-bs-toggle="tab" data-bs-target="#violations" type="button" role="tab">
+                                    <i class="fas fa-video me-1"></i>Video Violations
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="audio-tab" data-bs-toggle="tab" data-bs-target="#audio" type="button" role="tab">
+                                    <i class="fas fa-volume-up me-1"></i>Audio Events
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="correlations-tab" data-bs-toggle="tab" data-bs-target="#correlations" type="button" role="tab">
+                                    <i class="fas fa-link me-1"></i>Correlations
+                                </button>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="card-body">
+                        <div class="tab-content" id="dataTabsContent">
+                            <div class="tab-pane fade show active" id="violations" role="tabpanel">
+                                <div class="table-responsive">
+                                    <table class="table table-striped" id="violationsTable">
+                                        <thead>
+                                            <tr>
+                                                <th>Timestamp</th>
+                                                <th>Violation Type</th>
+                                                <th>Confidence</th>
+                                                <th>Vehicle Type</th>
+                                                <th>Zone</th>
+                                                <th>Speed (mph)</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <!-- Data will be loaded here -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="tab-pane fade" id="audio" role="tabpanel">
+                                <div class="table-responsive">
+                                    <table class="table table-striped" id="audioTable">
+                                        <thead>
+                                            <tr>
+                                                <th>Timestamp</th>
+                                                <th>Event Type</th>
+                                                <th>Confidence</th>
+                                                <th>Frequency (Hz)</th>
+                                                <th>Duration (s)</th>
+                                                <th>Decibel Level</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <!-- Data will be loaded here -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="tab-pane fade" id="correlations" role="tabpanel">
+                                <div class="table-responsive">
+                                    <table class="table table-striped" id="correlationsTable">
+                                        <thead>
+                                            <tr>
+                                                <th>Audio Event</th>
+                                                <th>Video Violation</th>
+                                                <th>Time Difference (s)</th>
+                                                <th>Correlation Strength</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <!-- Data will be loaded here -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="row">
+            <div class="col-12 text-center">
+                <a href="/" class="btn btn-primary btn-lg me-3">
+                    <i class="fas fa-upload me-2"></i>Analyze Another Video
+                </a>
+                <button class="btn btn-outline-primary btn-lg" onclick="downloadAll()">
+                    <i class="fas fa-download me-2"></i>Download All Data
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const analysisId = '{{ analysis_id }}';
+    
+    // Load data
+    loadAnalysisData(analysisId);
+    
+    // Initialize charts
+    initializeCharts();
+});
+
+function loadAnalysisData(analysisId) {
+    fetch(`/api/results/${analysisId}`)
+        .then(response => response.json())
+        .then(data => {
+            populateViolationsTable(data.violations || []);
+            populateAudioTable(data.audio_events || []);
+            populateCorrelationsTable(data.correlated_events || []);
+            updateCharts(data);
+        })
+        .catch(error => {
+            console.error('Error loading data:', error);
+        });
+}
+
+function populateViolationsTable(violations) {
+    const tbody = document.querySelector('#violationsTable tbody');
+    tbody.innerHTML = '';
+    
+    violations.forEach(violation => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${new Date(violation.timestamp).toLocaleString()}</td>
+            <td><span class="badge bg-danger">${violation.violation_type.replace('_', ' ').toUpperCase()}</span></td>
+            <td>${(violation.confidence * 100).toFixed(1)}%</td>
+            <td>${violation.vehicle_type || 'Unknown'}</td>
+            <td>${violation.zone || 'Unknown'}</td>
+            <td>${violation.speed_mph ? violation.speed_mph.toFixed(1) : 'N/A'}</td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+function populateAudioTable(audioEvents) {
+    const tbody = document.querySelector('#audioTable tbody');
+    tbody.innerHTML = '';
+    
+    audioEvents.forEach(event => {
+        const row = document.createElement('tr');
+        const badgeClass = getEventBadgeClass(event.event_type);
+        row.innerHTML = `
+            <td>${new Date(event.timestamp).toLocaleString()}</td>
+            <td><span class="badge ${badgeClass}">${event.event_type.replace('_', ' ').toUpperCase()}</span></td>
+            <td>${(event.confidence * 100).toFixed(1)}%</td>
+            <td>${event.frequency_peak ? event.frequency_peak.toFixed(0) : 'N/A'}</td>
+            <td>${event.duration ? event.duration.toFixed(2) : 'N/A'}</td>
+            <td>${event.decibel_level ? event.decibel_level.toFixed(1) : 'N/A'}</td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+function populateCorrelationsTable(correlations) {
+    const tbody = document.querySelector('#correlationsTable tbody');
+    tbody.innerHTML = '';
+    
+    correlations.forEach(correlation => {
+        const row = document.createElement('tr');
+        const strengthClass = correlation.correlation_strength > 0.8 ? 'text-success' : 
+                             correlation.correlation_strength > 0.5 ? 'text-warning' : 'text-danger';
+        row.innerHTML = `
+            <td>${correlation.audio_event_type.replace('_', ' ').toUpperCase()}</td>
+            <td>${correlation.video_violation_type.replace('_', ' ').toUpperCase()}</td>
+            <td>${correlation.time_difference.toFixed(2)}</td>
+            <td class="${strengthClass}">${(correlation.correlation_strength * 100).toFixed(1)}%</td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+function getEventBadgeClass(eventType) {
+    switch(eventType) {
+        case 'horn_honk': return 'bg-warning';
+        case 'siren': return 'bg-info';
+        case 'brake_squeal': return 'bg-danger';
+        default: return 'bg-secondary';
+    }
+}
+
+function initializeCharts() {
+    // Violation chart
+    const violationCtx = document.getElementById('violationChartCanvas').getContext('2d');
+    window.violationChart = new Chart(violationCtx, {
+        type: 'doughnut',
+        data: {
+            labels: [],
+            datasets: [{
+                data: [],
+                backgroundColor: ['#dc3545', '#ffc107', '#17a2b8', '#28a745', '#6f42c1']
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false
+        }
+    });
+    
+    // Audio chart
+    const audioCtx = document.getElementById('audioChartCanvas').getContext('2d');
+    window.audioChart = new Chart(audioCtx, {
+        type: 'bar',
+        data: {
+            labels: [],
+            datasets: [{
+                label: 'Count',
+                data: [],
+                backgroundColor: ['#ffc107', '#17a2b8', '#dc3545']
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+}
+
+function updateCharts(data) {
+    // Update violation chart
+    if (data.violations && data.violations.length > 0) {
+        const violationCounts = {};
+        data.violations.forEach(v => {
+            violationCounts[v.violation_type] = (violationCounts[v.violation_type] || 0) + 1;
+        });
+        
+        window.violationChart.data.labels = Object.keys(violationCounts).map(k => k.replace('_', ' ').toUpperCase());
+        window.violationChart.data.datasets[0].data = Object.values(violationCounts);
+        window.violationChart.update();
+    }
+    
+    // Update audio chart
+    if (data.audio_events && data.audio_events.length > 0) {
+        const audioCounts = {};
+        data.audio_events.forEach(a => {
+            audioCounts[a.event_type] = (audioCounts[a.event_type] || 0) + 1;
+        });
+        
+        window.audioChart.data.labels = Object.keys(audioCounts).map(k => k.replace('_', ' ').toUpperCase());
+        window.audioChart.data.datasets[0].data = Object.values(audioCounts);
+        window.audioChart.update();
+    }
+}
+
+function downloadAll() {
+    const analysisId = '{{ analysis_id }}';
+    const files = [
+        `video_violations_${analysisId}.csv`,
+        `audio_events_${analysisId}.csv`,
+        `correlated_events_${analysisId}.csv`,
+        `analysis_summary_${analysisId}.csv`
+    ];
+    
+    files.forEach(file => {
+        const link = document.createElement('a');
+        link.href = `/download/${analysisId}/${file}`;
+        link.download = file;
+        link.click();
+    });
+}
+</script>
+{% endblock %}

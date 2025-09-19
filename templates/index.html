@@ -1,0 +1,252 @@
+{% extends "base.html" %}
+
+{% block title %}RedCrowWatch - Upload Video{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8 mx-auto">
+        <!-- Header -->
+        <div class="text-center mb-5">
+            <h1 class="display-4 fw-bold text-primary mb-3">
+                <i class="fas fa-traffic-light me-3"></i>
+                RedCrowWatch
+            </h1>
+            <p class="lead text-muted">
+                AI-Powered Traffic Intersection Monitoring for NYC
+            </p>
+            <p class="text-muted">
+                Upload your Wyze camera footage to analyze traffic violations, horn honks, and safety metrics
+            </p>
+        </div>
+
+        <!-- Upload Area -->
+        <div class="card mb-5">
+            <div class="card-body p-4">
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-content">
+                        <i class="fas fa-cloud-upload-alt fa-4x text-muted mb-3"></i>
+                        <h4 class="mb-3">Drop your video here or click to browse</h4>
+                        <p class="text-muted mb-3">
+                            Supported formats: MP4, AVI, MOV, MKV, WMV<br>
+                            Maximum file size: 500MB
+                        </p>
+                        <input type="file" id="fileInput" accept="video/*" style="display: none;">
+                        <button class="btn btn-primary btn-lg" onclick="document.getElementById('fileInput').click()">
+                            <i class="fas fa-upload me-2"></i>Choose Video File
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Processing Status -->
+        <div class="card mb-5" id="processingCard" style="display: none;">
+            <div class="card-body text-center p-4">
+                <div class="loading-spinner" id="loadingSpinner">
+                    <div class="progress-ring">
+                        <svg class="progress-ring" width="120" height="120">
+                            <circle class="progress-ring-bg" cx="60" cy="60" r="52"></circle>
+                            <circle class="progress-ring-circle" cx="60" cy="60" r="52" 
+                                    stroke-dasharray="326.73" stroke-dashoffset="326.73" id="progressCircle"></circle>
+                        </svg>
+                    </div>
+                    <h4 class="mt-3 mb-2">Analyzing Your Video</h4>
+                    <p class="text-muted mb-3">This may take a few minutes depending on video length</p>
+                    <div class="progress mb-3" style="height: 8px;">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                             role="progressbar" style="width: 0%" id="progressBar"></div>
+                    </div>
+                    <p class="small text-muted" id="statusText">Initializing analysis...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Features -->
+        <div class="row mb-5">
+            <div class="col-md-4 mb-3">
+                <div class="card h-100 text-center">
+                    <div class="card-body">
+                        <i class="fas fa-eye fa-3x text-primary mb-3"></i>
+                        <h5>Video Analysis</h5>
+                        <p class="text-muted">Detects red light running, speeding, wrong-way driving, and bike lane violations</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-3">
+                <div class="card h-100 text-center">
+                    <div class="card-body">
+                        <i class="fas fa-volume-up fa-3x text-success mb-3"></i>
+                        <h5>Audio Analysis</h5>
+                        <p class="text-muted">Identifies horn honks, emergency sirens, and brake squeals</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-3">
+                <div class="card h-100 text-center">
+                    <div class="card-body">
+                        <i class="fas fa-chart-line fa-3x text-warning mb-3"></i>
+                        <h5>Smart Reports</h5>
+                        <p class="text-muted">Generates comprehensive dashboards and safety metrics</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- About Section -->
+        <div class="card" id="about">
+            <div class="card-body">
+                <h4 class="mb-3">
+                    <i class="fas fa-info-circle me-2"></i>
+                    About RedCrowWatch
+                </h4>
+                <p class="text-muted">
+                    RedCrowWatch is an AI-powered traffic monitoring system designed specifically for NYC intersections. 
+                    It combines computer vision and audio analysis to detect traffic violations, safety concerns, 
+                    and generate actionable insights for traffic safety improvement.
+                </p>
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Video Detection:</h6>
+                        <ul class="text-muted small">
+                            <li>Red light running violations</li>
+                            <li>Speeding detection</li>
+                            <li>Wrong-way driving</li>
+                            <li>Bike lane violations</li>
+                            <li>Pedestrian crossing violations</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Audio Detection:</h6>
+                        <ul class="text-muted small">
+                            <li>Horn honks (driver frustration)</li>
+                            <li>Emergency sirens</li>
+                            <li>Brake squeals (sudden stops)</li>
+                            <li>Audio-video correlation</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const uploadArea = document.getElementById('uploadArea');
+    const fileInput = document.getElementById('fileInput');
+    const processingCard = document.getElementById('processingCard');
+    const loadingSpinner = document.getElementById('loadingSpinner');
+    const progressBar = document.getElementById('progressBar');
+    const statusText = document.getElementById('statusText');
+    const progressCircle = document.getElementById('progressCircle');
+
+    // Drag and drop functionality
+    uploadArea.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        uploadArea.classList.add('dragover');
+    });
+
+    uploadArea.addEventListener('dragleave', function(e) {
+        e.preventDefault();
+        uploadArea.classList.remove('dragover');
+    });
+
+    uploadArea.addEventListener('drop', function(e) {
+        e.preventDefault();
+        uploadArea.classList.remove('dragover');
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            handleFile(files[0]);
+        }
+    });
+
+    // File input change
+    fileInput.addEventListener('change', function(e) {
+        if (e.target.files.length > 0) {
+            handleFile(e.target.files[0]);
+        }
+    });
+
+    // Click to upload
+    uploadArea.addEventListener('click', function() {
+        fileInput.click();
+    });
+
+    function handleFile(file) {
+        if (!file.type.startsWith('video/')) {
+            alert('Please select a video file.');
+            return;
+        }
+
+        if (file.size > 500 * 1024 * 1024) {
+            alert('File size must be less than 500MB.');
+            return;
+        }
+
+        uploadFile(file);
+    }
+
+    function uploadFile(file) {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        // Show processing card
+        processingCard.style.display = 'block';
+        loadingSpinner.style.display = 'block';
+        
+        // Simulate progress
+        let progress = 0;
+        const progressInterval = setInterval(() => {
+            progress += Math.random() * 10;
+            if (progress > 90) progress = 90;
+            
+            progressBar.style.width = progress + '%';
+            updateProgressCircle(progress);
+            
+            if (progress < 30) {
+                statusText.textContent = 'Uploading video...';
+            } else if (progress < 60) {
+                statusText.textContent = 'Analyzing video for violations...';
+            } else if (progress < 90) {
+                statusText.textContent = 'Processing audio analysis...';
+            }
+        }, 500);
+
+        fetch('/upload', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            clearInterval(progressInterval);
+            progressBar.style.width = '100%';
+            updateProgressCircle(100);
+            statusText.textContent = 'Analysis complete!';
+            
+            if (data.success) {
+                setTimeout(() => {
+                    window.location.href = `/results/${data.analysis_id}`;
+                }, 1000);
+            } else {
+                alert('Error: ' + data.error);
+                processingCard.style.display = 'none';
+            }
+        })
+        .catch(error => {
+            clearInterval(progressInterval);
+            console.error('Error:', error);
+            alert('Upload failed: ' + error.message);
+            processingCard.style.display = 'none';
+        });
+    }
+
+    function updateProgressCircle(percent) {
+        const circumference = 2 * Math.PI * 52;
+        const offset = circumference - (percent / 100) * circumference;
+        progressCircle.style.strokeDashoffset = offset;
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,20 @@
+# Core dependencies for RedCrowWatch Phase 1
+opencv-python
+numpy
+pandas
+matplotlib
+seaborn
+pyyaml
+tweepy
+python-dotenv
+ultralytics
+torch
+torchvision
+click
+tqdm
+python-dateutil
+
+# Audio processing dependencies
+librosa
+scipy
+soundfile

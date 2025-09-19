@@ -1,0 +1,163 @@
+# RedCrowWatch Configuration File
+
+# Camera Settings
+camera:
+  model: "wyze_v4"
+  resolution: [1920, 1080]
+  fps: 30
+  rtsp_url: "rtsp://your_camera_ip:554/stream"  # Update with your camera's RTSP URL
+  position: "balcony_ledge"
+  field_of_view: "full_intersection"
+  
+# Analysis Settings
+analysis:
+  # Detection zones (define intersection areas)
+  # Based on T-intersection with expressway offramp
+  detection_zones:
+    - name: "one_way_street_approach"
+      coordinates: [[200, 150], [400, 150], [400, 300], [200, 300]]
+      description: "One-way street approaching the T-intersection"
+    - name: "one_way_avenue_approach"
+      coordinates: [[100, 300], [200, 300], [200, 500], [100, 500]]
+      description: "One-way avenue approaching the T-intersection"
+    - name: "expressway_offramp"
+      coordinates: [[400, 200], [600, 200], [600, 400], [400, 400]]
+      description: "Expressway offramp merging into intersection"
+    - name: "intersection_core"
+      coordinates: [[200, 300], [400, 300], [400, 500], [200, 500]]
+      description: "Core intersection area where violations occur"
+    - name: "bike_lane"
+      coordinates: [[50, 100], [200, 100], [200, 150], [50, 150]]
+      description: "Divided bike lane area"
+    - name: "pedestrian_crossing"
+      coordinates: [[200, 500], [400, 500], [400, 600], [200, 600]]
+      description: "Pedestrian crossing area near bridge terminus"
+  
+  # Traffic light detection
+  # Note: Main traffic lights not visible, using pedestrian signal as proxy
+  traffic_lights:
+    - name: "pedestrian_signal"
+      position: [300, 550]  # Approximate position of walk/don't walk signal
+      detection_radius: 25
+      type: "pedestrian"
+      description: "Pedestrian walk/don't walk signal (proxy for traffic light state)"
+    - name: "inferred_traffic_light_1"
+      position: [250, 400]  # Inferred position based on intersection layout
+      detection_radius: 30
+      type: "inferred"
+      description: "Inferred traffic light position (not directly visible)"
+    - name: "inferred_traffic_light_2"
+      position: [350, 400]  # Inferred position for offramp direction
+      detection_radius: 30
+      type: "inferred"
+      description: "Inferred traffic light for offramp direction"
+  
+  # Violation thresholds
+  violations:
+    red_light_running:
+      min_confidence: 0.7
+      grace_period_seconds: 2  # Allow 2 seconds after red light
+      use_pedestrian_signal_proxy: true  # Use pedestrian signal as traffic light proxy
+    speeding:
+      speed_limit_mph: 25  # NYC speed limit
+      detection_distance_pixels: 100  # Distance to calculate speed
+      truck_route_penalty: 1.2  # Higher threshold for truck route
+    wrong_way:
+      min_confidence: 0.8
+    bike_lane_violation:
+      min_confidence: 0.75
+      description: "Vehicles in bike lane"
+    pedestrian_violation:
+      min_confidence: 0.8
+      description: "Vehicles blocking pedestrian crossing"
+    bus_lane_violation:
+      min_confidence: 0.7
+      description: "Non-bus vehicles in bus lane"
+
+# Data Storage
+storage:
+  database:
+    type: "sqlite"  # Phase 1: sqlite, Phase 1.5: postgresql
+    path: "data/traffic_violations.db"
+  
+  video:
+    input_directory: "data/videos/raw"
+    processed_directory: "data/videos/processed"
+    output_directory: "data/outputs"
+    retention_days: 30
+
+# Social Media
+social_media:
+  twitter:
+    enabled: true
+    api_key: ""  # Set via environment variable
+    api_secret: ""
+    access_token: ""
+    access_token_secret: ""
+    hashtags: ["#TrafficSafety", "#RedLightViolations", "#IntersectionWatch"]
+  
+  youtube:
+    enabled: false  # Phase 2
+    api_key: ""
+    channel_id: ""
+
+# Visualization
+visualization:
+  style: "seaborn-v0_8"
+  color_palette: "Set2"
+  figure_size: [12, 8]
+  dpi: 300
+  
+  charts:
+    - type: "violations_by_hour"
+      title: "Traffic Violations by Hour"
+    - type: "violations_by_direction"
+      title: "Violations by Direction"
+    - type: "violation_timeline"
+      title: "Violation Timeline"
+
+# Logging
+logging:
+  level: "INFO"
+  file: "logs/redcrowwatch.log"
+  max_size_mb: 10
+  backup_count: 5
+
+# Audio Analysis
+audio_analysis:
+  enabled: true
+  sample_rate: 22050
+  hop_length: 512
+  n_fft: 2048
+  
+  # Horn detection parameters
+  horn_detection:
+    frequency_min: 200      # Hz - minimum frequency for horn detection
+    frequency_max: 2000     # Hz - maximum frequency for horn detection
+    duration_min: 0.1       # seconds - minimum horn duration
+    duration_max: 3.0       # seconds - maximum horn duration
+    db_threshold: 40        # dB - minimum power threshold
+    confidence_threshold: 0.7  # minimum confidence for detection
+  
+  # Siren detection parameters
+  siren_detection:
+    frequency_min: 500      # Hz
+    frequency_max: 2000     # Hz
+    duration_min: 2.0       # seconds
+    db_threshold: 35        # dB
+    confidence_threshold: 0.6
+  
+  # Brake squeal detection parameters
+  brake_detection:
+    frequency_min: 2000     # Hz
+    frequency_max: 8000     # Hz
+    duration_min: 0.05      # seconds
+    duration_max: 0.5       # seconds
+    db_threshold: 30        # dB
+    confidence_threshold: 0.5
+
+# Development
+development:
+  debug_mode: false
+  save_debug_frames: false
+  debug_output_directory: "data/debug"

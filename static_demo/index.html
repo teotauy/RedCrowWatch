@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RedCrowWatch - AI Traffic Monitoring Demo</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        :root {
+            --primary-color: #dc3545;
+            --secondary-color: #6c757d;
+            --success-color: #198754;
+            --warning-color: #ffc107;
+            --info-color: #0dcaf0;
+            --dark-color: #212529;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .navbar {
+            background: rgba(255, 255, 255, 0.95) !important;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        .navbar-brand {
+            font-weight: bold;
+            color: var(--primary-color) !important;
+        }
+        
+        .main-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            margin: 2rem auto;
+            padding: 2rem;
+        }
+        
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(45deg, var(--primary-color), #e74c3c);
+            border: none;
+            border-radius: 25px;
+            padding: 12px 30px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(220, 53, 69, 0.3);
+        }
+        
+        .demo-area {
+            border: 3px dashed #dee2e6;
+            border-radius: 15px;
+            padding: 3rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        }
+        
+        .demo-area:hover {
+            border-color: var(--primary-color);
+            background: linear-gradient(135deg, #fff5f5 0%, #ffe6e6 100%);
+        }
+        
+        .stats-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px;
+            padding: 1.5rem;
+            text-align: center;
+        }
+        
+        .stats-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+        
+        .demo-video {
+            max-width: 100%;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-light">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-traffic-light me-2"></i>
+                RedCrowWatch
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#demo">Demo</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#features">Features</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#deploy">Deploy</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container">
+        <div class="main-container fade-in">
+            <!-- Header -->
+            <div class="text-center mb-5">
+                <h1 class="display-4 fw-bold text-primary mb-3">
+                    <i class="fas fa-traffic-light me-3"></i>
+                    RedCrowWatch
+                </h1>
+                <p class="lead text-muted">
+                    AI-Powered Traffic Intersection Monitoring for NYC
+                </p>
+                <p class="text-muted">
+                    Upload your Wyze camera footage to analyze traffic violations, horn honks, and safety metrics
+                </p>
+            </div>
+
+            <!-- Demo Section -->
+            <div class="row mb-5" id="demo">
+                <div class="col-lg-8 mx-auto">
+                    <div class="card">
+                        <div class="card-body p-4">
+                            <div class="demo-area">
+                                <i class="fas fa-play-circle fa-4x text-primary mb-3"></i>
+                                <h4 class="mb-3">Live Demo</h4>
+                                <p class="text-muted mb-4">
+                                    This is a static demo. For full functionality with video upload and analysis, 
+                                    deploy the complete application using one of the methods below.
+                                </p>
+                                
+                                <!-- Demo Video -->
+                                <div class="mb-4">
+                                    <video class="demo-video" controls>
+                                        <source src="https://sample-videos.com/zip/10/mp4/SampleVideo_1280x720_1mb.mp4" type="video/mp4">
+                                        Your browser does not support the video tag.
+                                    </video>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-4 mb-3">
+                                        <div class="stats-card">
+                                            <div class="stats-number">12</div>
+                                            <div class="small">Video Violations</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <div class="stats-card">
+                                            <div class="stats-number">8</div>
+                                            <div class="small">Audio Events</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <div class="stats-card">
+                                            <div class="stats-number">85.2</div>
+                                            <div class="small">Safety Score</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <a href="#deploy" class="btn btn-primary btn-lg">
+                                    <i class="fas fa-rocket me-2"></i>Deploy Your Own
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Features -->
+            <div class="row mb-5" id="features">
+                <div class="col-12">
+                    <h2 class="text-center mb-4">Features</h2>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <div class="card h-100 text-center">
+                        <div class="card-body">
+                            <i class="fas fa-eye fa-3x text-primary mb-3"></i>
+                            <h5>Video Analysis</h5>
+                            <p class="text-muted">Detects red light running, speeding, wrong-way driving, and bike lane violations using computer vision</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <div class="card h-100 text-center">
+                        <div class="card-body">
+                            <i class="fas fa-volume-up fa-3x text-success mb-3"></i>
+                            <h5>Audio Analysis</h5>
+                            <p class="text-muted">Identifies horn honks, emergency sirens, and brake squeals using advanced audio processing</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <div class="card h-100 text-center">
+                        <div class="card-body">
+                            <i class="fas fa-chart-line fa-3x text-warning mb-3"></i>
+                            <h5>Smart Reports</h5>
+                            <p class="text-muted">Generates comprehensive dashboards, heatmaps, and safety metrics for traffic analysis</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Deployment Options -->
+            <div class="row mb-5" id="deploy">
+                <div class="col-12">
+                    <h2 class="text-center mb-4">Deployment Options</h2>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <div class="card h-100">
+                        <div class="card-header bg-success text-white">
+                            <h5 class="mb-0">
+                                <i class="fas fa-rocket me-2"></i>
+                                Free Hosting
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <h6>Railway (Recommended)</h6>
+                            <p class="text-muted small">Free tier, automatic deploys from GitHub</p>
+                            
+                            <h6>Render</h6>
+                            <p class="text-muted small">Free tier with 750 hours/month</p>
+                            
+                            <h6>PythonAnywhere</h6>
+                            <p class="text-muted small">Python-optimized hosting</p>
+                            
+                            <a href="https://github.com/yourusername/RedCrowWatch" class="btn btn-success btn-sm">
+                                <i class="fab fa-github me-1"></i>View on GitHub
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <div class="card h-100">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0">
+                                <i class="fas fa-cloud me-2"></i>
+                                Cloud Hosting
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <h6>AWS EC2</h6>
+                            <p class="text-muted small">Full control, scalable infrastructure</p>
+                            
+                            <h6>Google Cloud Run</h6>
+                            <p class="text-muted small">Serverless, pay-per-use</p>
+                            
+                            <h6>DigitalOcean</h6>
+                            <p class="text-muted small">Simple VPS hosting</p>
+                            
+                            <a href="https://github.com/yourusername/RedCrowWatch/blob/main/DEPLOYMENT_GUIDE.md" class="btn btn-primary btn-sm">
+                                <i class="fas fa-book me-1"></i>Deployment Guide
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Start -->
+            <div class="card mb-5">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-play me-2"></i>
+                        Quick Start
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>1. Clone Repository</h6>
+                            <pre class="bg-dark text-light p-3 rounded"><code>git clone https://github.com/yourusername/RedCrowWatch.git
+cd RedCrowWatch</code></pre>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>2. Run Locally</h6>
+                            <pre class="bg-dark text-light p-3 rounded"><code>python3 start_web.py
+# Open http://localhost:5000</code></pre>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-md-6">
+                            <h6>3. Deploy with Docker</h6>
+                            <pre class="bg-dark text-light p-3 rounded"><code>docker-compose up -d
+# Access on port 5000</code></pre>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>4. Deploy to Railway</h6>
+                            <pre class="bg-dark text-light p-3 rounded"><code># Connect GitHub repo
+# Deploy automatically
+# Set environment variables</code></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- About -->
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="mb-3">
+                        <i class="fas fa-info-circle me-2"></i>
+                        About RedCrowWatch
+                    </h4>
+                    <p class="text-muted">
+                        RedCrowWatch is an AI-powered traffic monitoring system designed specifically for NYC intersections. 
+                        It combines computer vision and audio analysis to detect traffic violations, safety concerns, 
+                        and generate actionable insights for traffic safety improvement.
+                    </p>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Video Detection:</h6>
+                            <ul class="text-muted small">
+                                <li>Red light running violations</li>
+                                <li>Speeding detection</li>
+                                <li>Wrong-way driving</li>
+                                <li>Bike lane violations</li>
+                                <li>Pedestrian crossing violations</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Audio Detection:</h6>
+                            <ul class="text-muted small">
+                                <li>Horn honks (driver frustration)</li>
+                                <li>Emergency sirens</li>
+                                <li>Brake squeals (sudden stops)</li>
+                                <li>Audio-video correlation</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="text-center text-white py-4 mt-5">
+        <div class="container">
+            <p>&copy; 2024 RedCrowWatch - AI-Powered Traffic Monitoring</p>
+            <p class="small">Monitoring NYC intersections for safer streets</p>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
