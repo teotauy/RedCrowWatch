@@ -6,6 +6,9 @@ Detects horn honks, sirens, and brake squeals in video audio
 
 import os
 import logging
+import subprocess
+import tempfile
+import shutil
 import numpy as np
 import librosa
 import soundfile as sf
@@ -30,12 +33,12 @@ class AudioAnalyzer:
             'hop_length': 512,
             'n_fft': 2048,
             'horn_detection': {
-                'frequency_min': 200,
-                'frequency_max': 2000,
-                'duration_min': 0.1,
-                'duration_max': 3.0,
-                'db_threshold': 40,
-                'confidence_threshold': 0.7
+                'frequency_min': int(os.environ.get('HORN_FREQ_MIN', 200)),
+                'frequency_max': int(os.environ.get('HORN_FREQ_MAX', 2000)),
+                'duration_min': float(os.environ.get('HORN_DURATION_MIN', 0.08)),
+                'duration_max': float(os.environ.get('HORN_DURATION_MAX', 3.0)),
+                'db_threshold': float(os.environ.get('HORN_DB_THRESHOLD', 35)),
+                'confidence_threshold': float(os.environ.get('HORN_CONFIDENCE_THRESHOLD', 0.55))
             },
             'siren_detection': {
                 'frequency_min': 500,
@@ -55,15 +58,45 @@ class AudioAnalyzer:
         }
     
     def extract_audio_from_video(self, video_path):
-        """Extract audio from video file"""
+        """Extract audio from video file with ffmpeg fallback"""
+        # First try librosa directly
         try:
-            # Use librosa to load audio
             audio, sr = librosa.load(video_path, sr=self.config['sample_rate'])
-            logger.info(f"Extracted audio: {len(audio)} samples at {sr}Hz")
+            logger.info(f"Extracted audio via librosa: {len(audio)} samples at {sr}Hz")
             return audio, sr
         except Exception as e:
-            logger.error(f"Failed to extract audio: {e}")
+            logger.warning(f"Librosa failed to read audio ({e}). Falling back to ffmpeg…")
+
+        # Fallback: use ffmpeg to decode to a temporary WAV, then load
+        ffmpeg_path = shutil.which('ffmpeg')
+        if not ffmpeg_path:
+            logger.error("ffmpeg not found in PATH; cannot extract audio")
             return None, None
+
+        tmp_dir = tempfile.mkdtemp(prefix='rcw_audio_')
+        tmp_wav = os.path.join(tmp_dir, 'audio.wav')
+        cmd = [
+            ffmpeg_path,
+            '-y',
+            '-i', video_path,
+            '-vn',
+            '-ac', '1',
+            '-ar', str(self.config['sample_rate']),
+            '-f', 'wav', tmp_wav
+        ]
+        try:
+            subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            audio, sr = librosa.load(tmp_wav, sr=self.config['sample_rate'])
+            logger.info(f"Extracted audio via ffmpeg: {len(audio)} samples at {sr}Hz")
+            return audio, sr
+        except Exception as e:
+            logger.error(f"ffmpeg audio extraction failed: {e}")
+            return None, None
+        finally:
+            try:
+                shutil.rmtree(tmp_dir)
+            except Exception:
+                pass
     
     def detect_horn_honks(self, audio, sr):
         """Detect horn honks in audio"""
@@ -82,6 +115,9 @@ class AudioAnalyzer:
             
             # Find peaks in the horn frequency range
             mean_power = np.mean(horn_spectrum, axis=0)
+            # Slight smoothing to reduce false negatives
+            if len(mean_power) > 5:
+                mean_power = signal.medfilt(mean_power, kernel_size=5)
             peaks, _ = find_peaks(mean_power, height=config['db_threshold'])
             
             # Convert peaks to time and filter by duration
@@ -97,7 +133,7 @@ class AudioAnalyzer:
                     # Calculate confidence based on power and duration
                     power = mean_power[peaks[i]]
                     duration = (end_frame - start_frame) * self.config['hop_length'] / sr
-                    confidence = min(1.0, (power - config['db_threshold']) / 20.0 + duration / config['duration_max'])
+                    confidence = min(1.0, (power - config['db_threshold']) / 18.0 + duration / max(0.25, config['duration_max']))
                     
                     if confidence >= config['confidence_threshold']:
                         events.append({
