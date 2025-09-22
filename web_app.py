@@ -175,17 +175,18 @@ def run_analysis(video_path, analysis_id):
         if video_violations:
             violations_data = []
             for violation in video_violations:
+                # violation is a dict from our analyzers
                 violations_data.append({
-                    'timestamp': violation.timestamp,
-                    'violation_type': violation.violation_type,
-                    'confidence': violation.confidence,
-                    'location_x': violation.location[0],
-                    'location_y': violation.location[1],
-                    'vehicle_id': violation.vehicle_id,
-                    'speed_mph': violation.speed_mph,
-                    'direction': violation.direction,
-                    'vehicle_type': violation.vehicle_type,
-                    'zone': violation.zone
+                    'timestamp': violation.get('timestamp'),
+                    'violation_type': violation.get('violation_type'),
+                    'confidence': violation.get('confidence'),
+                    'location_x': (violation.get('location') or [None, None])[0],
+                    'location_y': (violation.get('location') or [None, None])[1],
+                    'vehicle_id': violation.get('vehicle_id'),
+                    'speed_mph': violation.get('speed_mph'),
+                    'direction': violation.get('direction'),
+                    'vehicle_type': violation.get('vehicle_type'),
+                    'zone': violation.get('zone')
                 })
             violations_df = pd.DataFrame(violations_data)
             
