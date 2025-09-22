@@ -61,15 +61,30 @@ def health():
     """Health check endpoint"""
     return jsonify({'status': 'healthy', 'service': 'RedCrowWatch'})
 
+@app.route('/test')
+def test():
+    """Test endpoint"""
+    return jsonify({
+        'message': 'RedCrowWatch is working!',
+        'analysis_available': ANALYSIS_AVAILABLE,
+        'upload_folder': UPLOAD_FOLDER,
+        'output_folder': OUTPUT_FOLDER,
+        'allowed_extensions': list(ALLOWED_EXTENSIONS)
+    })
+
 @app.route('/upload', methods=['POST'])
 def upload_file():
     """Handle file upload and analysis"""
     try:
+        logger.info(f"Upload request received. Files: {list(request.files.keys())}")
+        
         if 'file' not in request.files:
+            logger.warning("No file in request")
             return jsonify({'error': 'No file uploaded'}), 400
         
         file = request.files['file']
         if file.filename == '':
+            logger.warning("Empty filename")
             return jsonify({'error': 'No file selected'}), 400
         
         if file and allowed_file(file.filename):
@@ -78,15 +93,24 @@ def upload_file():
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
             filename = f"{timestamp}_{filename}"
             filepath = os.path.join(UPLOAD_FOLDER, filename)
+            
+            logger.info(f"Saving file: {filename} to {filepath}")
             file.save(filepath)
             
-            logger.info(f"File uploaded: {filename}")
+            # Verify file was saved
+            if not os.path.exists(filepath):
+                logger.error(f"File not saved: {filepath}")
+                return jsonify({'error': 'Failed to save file'}), 500
+            
+            logger.info(f"File uploaded successfully: {filename} ({os.path.getsize(filepath)} bytes)")
             
             # Run analysis
             analysis_id = timestamp
+            logger.info(f"Starting analysis with ID: {analysis_id}")
             result = run_analysis(filepath, analysis_id)
             
             if result['success']:
+                logger.info(f"Analysis completed successfully: {analysis_id}")
                 return jsonify({
                     'success': True,
                     'analysis_id': analysis_id,
@@ -94,16 +118,18 @@ def upload_file():
                     'results': result['results']
                 })
             else:
+                logger.error(f"Analysis failed: {result['error']}")
                 return jsonify({
                     'success': False,
                     'error': result['error']
                 }), 500
         else:
-            return jsonify({'error': 'Invalid file type'}), 400
+            logger.warning(f"Invalid file type: {file.filename if file else 'None'}")
+            return jsonify({'error': 'Invalid file type. Please upload a video file (MP4, AVI, MOV, MKV, WMV)'}), 400
             
     except Exception as e:
-        logger.error(f"Upload error: {e}")
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"Upload error: {e}", exc_info=True)
+        return jsonify({'error': f'Upload failed: {str(e)}'}), 500
 
 def run_analysis(video_path, analysis_id):
     """Run the integrated analysis"""
