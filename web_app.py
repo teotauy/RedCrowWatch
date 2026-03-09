@@ -15,6 +15,10 @@ from flask import Flask, render_template, request, jsonify, send_file, redirect,
 from werkzeug.utils import secure_filename
 import pandas as pd
 
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 # Add src to path
 sys.path.append('src')
 
@@ -26,10 +30,6 @@ try:
 except ImportError as e:
     logger.warning(f"Analysis modules not available: {e}")
     ANALYSIS_AVAILABLE = False
-
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 # Initialize Flask app
 app = Flask(__name__)
