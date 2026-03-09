@@ -18,3 +18,22 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+
+  nyc_rtsp_analyzer:
+    build: .
+    command: python3 src/live_nyc_rtsp.py
+    environment:
+      - CAMERA_RTSP_URL=${CAMERA_RTSP_URL}
+      - PYTHONPATH=/app
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    restart: unless-stopped
+
+  twitch_stream:
+    build: .
+    command: sh -c 'ffmpeg -rtsp_transport tcp -i "$CAMERA_RTSP_URL" -c:v copy -c:a aac -f flv "rtmp://live.twitch.tv/app/$TWITCH_STREAM_KEY"'
+    environment:
+      - CAMERA_RTSP_URL=${CAMERA_RTSP_URL}
+      - TWITCH_STREAM_KEY=${TWITCH_STREAM_KEY}
+    restart: unless-stopped

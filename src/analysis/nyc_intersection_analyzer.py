@@ -17,6 +17,7 @@ import logging
 from dataclasses import dataclass
 from ultralytics import YOLO
 import yaml
+from .traffic_signal_cycle import TrafficSignalCycle, SignalPhase
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -55,6 +56,9 @@ class NYCIntersectionAnalyzer:
         self.pedestrian_signal_state = "unknown"
         self.violations = []
         
+        # Initialize traffic signal cycle manager
+        self.signal_cycle = TrafficSignalCycle(self.config)
+        
         # NYC-specific settings
         self.detection_zones = self.config['analysis']['detection_zones']
         self.traffic_lights = self.config['analysis']['traffic_lights']
@@ -70,6 +74,31 @@ class NYCIntersectionAnalyzer:
         }
         
         logger.info("NYC Intersection Analyzer initialized")
+    
+    def get_traffic_signal_status(self, timestamp: datetime = None) -> Dict:
+        """
+        Get current traffic signal status information
+        
+        Args:
+            timestamp: Time to check status (defaults to now)
+            
+        Returns:
+            Dictionary with signal status information
+        """
+        if timestamp is None:
+            timestamp = datetime.now()
+        
+        return self.signal_cycle.get_phase_info(timestamp)
+    
+    def reset_traffic_signal_cycle(self, start_time: datetime = None):
+        """
+        Reset the traffic signal cycle
+        
+        Args:
+            start_time: New cycle start time (defaults to now)
+        """
+        self.signal_cycle.reset_cycle(start_time)
+        logger.info("Traffic signal cycle reset")
     
     def analyze_video(self, video_path: str) -> List[NYCViolation]:
         """Analyze video for NYC intersection violations"""
@@ -102,7 +131,7 @@ class NYCIntersectionAnalyzer:
                 frame_number += 1
                 
                 # Progress logging
-                if frame_number % (fps * 10) == 0:
+                if fps > 0 and frame_count > 0 and frame_number % int(fps * 10) == 0:
                     progress = (frame_number / frame_count) * 100
                     logger.info(f"Progress: {progress:.1f}% - {len(violations)} violations")
         
@@ -297,30 +326,76 @@ class NYCIntersectionAnalyzer:
         return 'unknown'
     
     def _check_red_light_violations_nyc(self, vehicles: List[Dict], timestamp: datetime) -> List[NYCViolation]:
-        """Check for red light violations using pedestrian signal as proxy"""
+        """Check for red light violations using traffic signal cycle logic"""
         violations = []
         
-        # Use pedestrian signal as proxy for traffic light state
-        if self.pedestrian_signal_state == "don't_walk":
-            # Assume red light when pedestrian signal shows don't walk
-            for vehicle in vehicles:
-                center = vehicle['center']
-                zone = self._get_vehicle_zone(center)
-                
-                # Check if vehicle is in intersection core during "red light"
-                if zone == 'intersection_core':
+        # Get current traffic signal phase information
+        phase_info = self.signal_cycle.get_phase_info(timestamp)
+        current_phase = phase_info['phase']
+        sub_phase = phase_info['sub_phase']
+        
+        logger.debug(f"Current phase: {current_phase.value}, sub-phase: {sub_phase}")
+        
+        for vehicle in vehicles:
+            center = vehicle['center']
+            zone = self._get_vehicle_zone(center)
+            vehicle_id = f"{vehicle['vehicle_type']}_{center[0]}_{center[1]}"
+            
+            # Determine if this is a right turn (simplified detection)
+            is_right_turn = self._is_right_turn_movement(vehicle, zone)
+            
+            # Check if this movement constitutes a red light violation
+            is_violation = self.signal_cycle.is_red_light_violation(
+                timestamp=timestamp,
+                vehicle_zone=zone,
+                vehicle_direction=vehicle.get('direction', 'unknown'),
+                is_right_turn=is_right_turn
+            )
+            
+            if is_violation:
+                # Additional validation: check if vehicle is actually moving through intersection
+                if self._is_vehicle_moving_through_intersection(vehicle, zone):
                     violation = NYCViolation(
                         timestamp=timestamp,
                         violation_type='red_light_running',
                         confidence=vehicle['confidence'],
                         location=tuple(center),
-                        vehicle_id=f"{vehicle['vehicle_type']}_{center[0]}_{center[1]}",
+                        vehicle_id=vehicle_id,
                         vehicle_type=vehicle['vehicle_type'],
-                        zone=zone
+                        zone=zone,
+                        direction=vehicle.get('direction', 'unknown')
                     )
                     violations.append(violation)
+                    logger.info(f"Red light violation detected: {vehicle_id} in {zone} during {current_phase.value}")
         
         return violations
+    
+    def _is_right_turn_movement(self, vehicle: Dict, zone: str) -> bool:
+        """
+        Determine if vehicle movement is a right turn
+        This is a simplified detection - in production you'd track vehicle trajectory
+        """
+        # For now, assume vehicles in certain zones making certain movements are right turns
+        # This would be enhanced with actual trajectory tracking
+        if zone in ['one_way_street_approach', 'one_way_avenue_approach']:
+            # Vehicles approaching from these zones might be making right turns
+            return vehicle.get('direction') in ['east', 'south']  # Simplified direction check
+        return False
+    
+    def _is_vehicle_moving_through_intersection(self, vehicle: Dict, zone: str) -> bool:
+        """
+        Check if vehicle is actually moving through intersection (not just stopped)
+        """
+        vehicle_id = f"{vehicle['vehicle_type']}_{vehicle['center'][0]}_{vehicle['center'][1]}"
+        
+        # Check if we have tracking data for this vehicle
+        if vehicle_id in self.tracked_vehicles:
+            tracked_vehicle = self.tracked_vehicles[vehicle_id]
+            # Vehicle is moving if speed > threshold
+            return tracked_vehicle.get('speed_mph', 0) > 5  # 5 mph threshold
+        
+        # If no tracking data, assume vehicle is moving if in intersection core
+        return zone == 'intersection_core'
     
     def _check_speeding_violations_nyc(self, vehicles: List[Dict], timestamp: datetime) -> List[NYCViolation]:
         """Check for speeding violations with NYC-specific thresholds"""

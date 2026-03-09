@@ -5,7 +5,12 @@ camera:
   model: "wyze_v4"
   resolution: [1920, 1080]
   fps: 30
-  rtsp_url: "rtsp://your_camera_ip:554/stream"  # Update with your camera's RTSP URL
+  # RTSP URL for live camera feed.
+  # Prefer setting this via the CAMERA_RTSP_URL environment variable so
+  # credentials are not committed to version control. This value is only
+  # used as a fallback if CAMERA_RTSP_URL and the --rtsp-url CLI argument
+  # are not provided.
+  rtsp_url: "rtsp://your_camera_ip:554/stream"
   position: "balcony_ledge"
   field_of_view: "full_intersection"
   
@@ -52,12 +57,27 @@ analysis:
       type: "inferred"
       description: "Inferred traffic light for offramp direction"
   
+  # Traffic Signal Cycle Configuration
+  traffic_signal_cycle:
+    total_cycle_duration: 88  # Total cycle time in seconds
+    phases:
+      walk_signal:
+        duration: 25  # Walk signal + countdown
+        description: "Pedestrians can walk on all three crosswalks"
+      expressway_green:
+        duration: 36  # Offramp green + yellow
+        description: "Expressway offramp has green lights"
+      street_green:
+        duration: 27  # 19th street green + yellow
+        description: "19th street traffic has green lights"
+    right_on_red_allowed: true  # NYC allows right turns on red
+
   # Violation thresholds
   violations:
     red_light_running:
       min_confidence: 0.7
       grace_period_seconds: 2  # Allow 2 seconds after red light
-      use_pedestrian_signal_proxy: true  # Use pedestrian signal as traffic light proxy
+      use_traffic_signal_cycle: true  # Use traffic signal cycle logic
     speeding:
       speed_limit_mph: 25  # NYC speed limit
       detection_distance_pixels: 100  # Distance to calculate speed

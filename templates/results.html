@@ -260,12 +260,9 @@
         <!-- Actions -->
         <div class="row">
             <div class="col-12 text-center">
-                <a href="/" class="btn btn-primary btn-lg me-3">
+                <a href="/" class="btn btn-primary btn-lg">
                     <i class="fas fa-upload me-2"></i>Analyze Another Video
                 </a>
-                <button class="btn btn-outline-primary btn-lg" onclick="downloadAll()">
-                    <i class="fas fa-download me-2"></i>Download All Data
-                </button>
             </div>
         </div>
     </div>
@@ -430,21 +427,5 @@ function updateCharts(data) {
     }
 }
 
-function downloadAll() {
-    const analysisId = '{{ analysis_id }}';
-    const files = [
-        `video_violations_${analysisId}.csv`,
-        `audio_events_${analysisId}.csv`,
-        `correlated_events_${analysisId}.csv`,
-        `analysis_summary_${analysisId}.csv`
-    ];
-    
-    files.forEach(file => {
-        const link = document.createElement('a');
-        link.href = `/download/${analysisId}/${file}`;
-        link.download = file;
-        link.click();
-    });
-}
 </script>
 {% endblock %}

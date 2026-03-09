@@ -1,0 +1,411 @@
+{% extends "base.html" %}
+
+{% block title %}RedCrowWatch - Camera Calibration{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <!-- Header -->
+        <div class="text-center mb-4">
+            <h1 class="display-5 fw-bold text-primary mb-2">
+                <i class="fas fa-camera me-3"></i>
+                Camera Calibration
+            </h1>
+            <p class="text-muted">Adjust detection zones after camera repositioning</p>
+        </div>
+
+        <!-- Instructions -->
+        <div class="alert alert-info mb-4">
+            <h5><i class="fas fa-info-circle me-2"></i>Instructions</h5>
+            <p class="mb-2">Use this tool to adjust detection zones when your camera position changes (e.g., after SD card removal).</p>
+            <ul class="mb-0">
+                <li>Click and drag zone points to adjust their positions</li>
+                <li>Use the zone selector to switch between different detection areas</li>
+                <li>Reset individual zones or save all changes</li>
+                <li>Preview changes before saving</li>
+            </ul>
+        </div>
+
+        <!-- Zone Controls -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-map-marked-alt me-2"></i>
+                            Zone Controls
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="zoneSelector" class="form-label">Select Zone:</label>
+                            <select class="form-select" id="zoneSelector">
+                                {% for zone in zones %}
+                                <option value="{{ loop.index0 }}">{{ zone.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <button class="btn btn-warning me-2" onclick="resetCurrentZone()">
+                                <i class="fas fa-undo me-1"></i>Reset Zone
+                            </button>
+                            <button class="btn btn-success me-2" onclick="saveConfiguration()">
+                                <i class="fas fa-save me-1"></i>Save All Changes
+                            </button>
+                            <button class="btn btn-info" onclick="createBackup()">
+                                <i class="fas fa-download me-1"></i>Create Backup
+                            </button>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <button class="btn btn-info" onclick="previewFrame()">
+                                <i class="fas fa-eye me-1"></i>Preview Frame
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Current Zone Info
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="zoneInfo">
+                            <p><strong>Zone:</strong> <span id="currentZoneName">-</span></p>
+                            <p><strong>Description:</strong> <span id="currentZoneDesc">-</span></p>
+                            <p><strong>Points:</strong> <span id="currentZonePoints">-</span></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Preview Area -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-image me-2"></i>
+                            Zone Preview
+                        </h5>
+                    </div>
+                    <div class="card-body text-center">
+                        <div id="previewContainer">
+                            <p class="text-muted">Click "Preview Frame" to see current zone configuration</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Backup & Restore -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-warning text-dark">
+                        <h5 class="mb-0">
+                            <i class="fas fa-archive me-2"></i>
+                            Backup & Restore
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>Create Backup</h6>
+                                <p class="text-muted">Save current configuration with timestamp</p>
+                                <button class="btn btn-outline-primary" onclick="createBackup()">
+                                    <i class="fas fa-download me-1"></i>Create Backup
+                                </button>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Restore from Backup</h6>
+                                <p class="text-muted">Load a previously saved configuration</p>
+                                <button class="btn btn-outline-success" onclick="showBackups()">
+                                    <i class="fas fa-upload me-1"></i>Restore Backup
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Backup List (hidden by default) -->
+                        <div id="backupList" class="mt-3" style="display: none;">
+                            <h6>Available Backups:</h6>
+                            <div id="backupTable"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Zone Details -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-list me-2"></i>
+                            All Zones
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Zone Name</th>
+                                        <th>Description</th>
+                                        <th>Points</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="zonesTable">
+                                    {% for zone in zones %}
+                                    <tr>
+                                        <td>{{ zone.name }}</td>
+                                        <td>{{ zone.description }}</td>
+                                        <td>{{ zone.coordinates|length }}</td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-primary" onclick="selectZone({{ loop.index0 }})">
+                                                Select
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-warning" onclick="resetZone({{ loop.index0 }})">
+                                                Reset
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="row">
+            <div class="col-12 text-center">
+                <a href="/" class="btn btn-primary btn-lg me-3">
+                    <i class="fas fa-home me-2"></i>Back to Main
+                </a>
+                <button class="btn btn-success btn-lg" onclick="saveConfiguration()">
+                    <i class="fas fa-save me-2"></i>Save Configuration
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let zones = {{ zones | tojson }};
+let currentZoneIndex = 0;
+
+document.addEventListener('DOMContentLoaded', function() {
+    updateZoneInfo();
+    
+    // Zone selector change handler
+    document.getElementById('zoneSelector').addEventListener('change', function() {
+        currentZoneIndex = parseInt(this.value);
+        updateZoneInfo();
+    });
+});
+
+function updateZoneInfo() {
+    if (currentZoneIndex < zones.length) {
+        const zone = zones[currentZoneIndex];
+        document.getElementById('currentZoneName').textContent = zone.name;
+        document.getElementById('currentZoneDesc').textContent = zone.description;
+        document.getElementById('currentZonePoints').textContent = zone.coordinates.length;
+    }
+}
+
+function selectZone(index) {
+    currentZoneIndex = index;
+    document.getElementById('zoneSelector').value = index;
+    updateZoneInfo();
+}
+
+function resetCurrentZone() {
+    if (confirm('Reset current zone to original coordinates?')) {
+        resetZone(currentZoneIndex);
+    }
+}
+
+function resetZone(index) {
+    fetch('/calibration/reset_zone', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            zone_index: index
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Reload page to get updated zones
+            location.reload();
+        } else {
+            alert('Error resetting zone: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error resetting zone');
+    });
+}
+
+function saveConfiguration() {
+    if (confirm('Save all zone changes to configuration file?')) {
+        fetch('/calibration/save_config', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Configuration saved successfully!');
+            } else {
+                alert('Error saving configuration: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error saving configuration');
+        });
+    }
+}
+
+function previewFrame() {
+    fetch('/calibration/preview_frame', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const container = document.getElementById('previewContainer');
+            container.innerHTML = `<img src="${data.frame}" class="img-fluid" alt="Zone Preview">`;
+        } else {
+            alert('Error generating preview: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error generating preview');
+    });
+}
+
+function createBackup() {
+    fetch('/calibration/backup_config', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Backup created successfully: ' + data.message);
+        } else {
+            alert('Error creating backup: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error creating backup');
+    });
+}
+
+function showBackups() {
+    fetch('/calibration/list_backups')
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            displayBackups(data.backups);
+        } else {
+            alert('Error loading backups: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error loading backups');
+    });
+}
+
+function displayBackups(backups) {
+    const backupList = document.getElementById('backupList');
+    const backupTable = document.getElementById('backupTable');
+    
+    if (backups.length === 0) {
+        backupTable.innerHTML = '<p class="text-muted">No backups available</p>';
+    } else {
+        let tableHTML = '<table class="table table-sm"><thead><tr><th>Filename</th><th>Date</th><th>Size</th><th>Action</th></tr></thead><tbody>';
+        
+        backups.forEach(backup => {
+            const date = new Date(backup.modified * 1000).toLocaleString();
+            const size = (backup.size / 1024).toFixed(1) + ' KB';
+            
+            tableHTML += `
+                <tr>
+                    <td>${backup.filename}</td>
+                    <td>${date}</td>
+                    <td>${size}</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-success" onclick="restoreBackup('${backup.path}')">
+                            Restore
+                        </button>
+                    </td>
+                </tr>
+            `;
+        });
+        
+        tableHTML += '</tbody></table>';
+        backupTable.innerHTML = tableHTML;
+    }
+    
+    backupList.style.display = 'block';
+}
+
+function restoreBackup(backupPath) {
+    if (confirm('Are you sure you want to restore this backup? This will overwrite your current configuration.')) {
+        fetch('/calibration/restore_config', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                backup_path: backupPath
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Configuration restored successfully!');
+                // Reload page to show restored zones
+                location.reload();
+            } else {
+                alert('Error restoring backup: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error restoring backup');
+        });
+    }
+}
+</script>
+{% endblock %}

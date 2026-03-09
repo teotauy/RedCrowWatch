@@ -27,6 +27,14 @@ except ImportError as e:
     logger.warning(f"Analysis modules not available: {e}")
     ANALYSIS_AVAILABLE = False
 
+# Import calibration module
+try:
+    from src.calibration.web_calibrator import register_calibration_routes
+    CALIBRATION_AVAILABLE = True
+except ImportError as e:
+    logger.warning(f"Calibration module not available: {e}")
+    CALIBRATION_AVAILABLE = False
+
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -35,6 +43,10 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'redcrowwatch_secret_key'
 app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024  # 500MB max file size
+
+# Register calibration routes if available
+if CALIBRATION_AVAILABLE:
+    register_calibration_routes(app)
 
 # Configuration
 UPLOAD_FOLDER = 'data/videos/raw'
@@ -256,8 +268,16 @@ def view_results(analysis_id):
 
 @app.route('/download/<analysis_id>/<filename>')
 def download_file(analysis_id, filename):
-    """Download analysis files"""
+    """Download analysis files - restricted to images only"""
     try:
+        # Only allow image file downloads
+        allowed_extensions = {'.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp'}
+        file_ext = os.path.splitext(filename)[1].lower()
+        
+        if file_ext not in allowed_extensions:
+            logger.warning(f"Download attempt for non-image file: {filename}")
+            return jsonify({'error': 'Only image files can be downloaded'}), 403
+        
         file_path = os.path.join(OUTPUT_FOLDER, analysis_id, filename)
         if os.path.exists(file_path):
             return send_file(file_path, as_attachment=True)
