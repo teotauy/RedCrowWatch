@@ -1,0 +1,24 @@
+# Full local requirements including ML pipeline and streaming
+-r requirements.txt
+
+# Computer vision / ML
+opencv-python>=4.8,<5
+ultralytics>=8.0,<9
+torch>=2.1,<3
+torchvision>=0.16,<1
+
+# Audio analysis
+librosa>=0.10,<1
+scipy>=1.11,<2
+soundfile>=0.12,<1
+
+# Streaming
+# ffmpeg-python>=0.2  # optional Python wrapper; ffmpeg binary required separately
+
+# Social
+tweepy>=4.14,<5
+
+# CLI
+click>=8.1,<9
+tqdm>=4.65,<5
+python-dateutil>=2.8,<3

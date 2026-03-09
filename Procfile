@@ -1,2 +1,1 @@
-# Railway deployment configuration
-web: python3 start.py
+web: gunicorn web_app:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120
