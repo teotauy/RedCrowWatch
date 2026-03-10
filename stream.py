@@ -65,19 +65,22 @@ def build_config() -> dict:
 
     rtsp_url = f"rtsp://{camera_user}:{camera_pass}@{camera_ip}:554/h264Preview_01_main"
 
-    # Detection zones — tune these after running --preview
+    # Detection zones — calibrated to tenthave/19thst camera angle
     detection_zones = [
         {
+            # Main road surface where moving vehicles travel
             'name': 'intersection',
-            'coordinates': [[200, 150], [1080, 150], [1080, 570], [200, 570]],
+            'coordinates': [[310, 420], [1100, 420], [1150, 650], [260, 650]],
         },
         {
+            # White-stripe crosswalk visible bottom-right
             'name': 'crosswalk',
-            'coordinates': [[200, 570], [800, 570], [800, 680], [200, 680]],
+            'coordinates': [[880, 620], [1270, 620], [1270, 720], [880, 720]],
         },
         {
+            # Bike lane left side under overpass
             'name': 'bike_lane',
-            'coordinates': [[50, 100], [200, 100], [200, 400], [50, 400]],
+            'coordinates': [[50, 430], [270, 430], [270, 700], [50, 700]],
         },
     ]
 
@@ -89,7 +92,7 @@ def build_config() -> dict:
         'stream_height':        int(os.environ.get('STREAM_HEIGHT', 720)),
         'stream_fps':           float(os.environ.get('STREAM_FPS', 25)),
         'detect_every_n_frames': int(os.environ.get('DETECT_EVERY', 3)),
-        'detection_confidence': 0.4,
+        'detection_confidence': 0.3,   # lowered for night IR footage
         'pass_camera_audio':    os.environ.get('PASS_AUDIO', '1') == '1',
         'detection_zones':      detection_zones,
         'semi_aspect_ratio':    float(os.environ.get('SEMI_ASPECT_RATIO', 2.5)),

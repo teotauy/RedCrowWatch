@@ -371,7 +371,7 @@ class LiveStreamer:
                     fps_timer = now
 
                 if preview:
-                    cv2.imshow('RedCrowWatch — Preview  (q=quit  s=snapshot)', frame)
+                    cv2.imshow('RedCrowWatch - Preview  (q=quit  s=snapshot)', frame)
                     key = cv2.waitKey(1) & 0xFF
                     if key == ord('q'):
                         logger.info("Preview closed.")
