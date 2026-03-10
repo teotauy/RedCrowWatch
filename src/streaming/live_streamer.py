@@ -112,8 +112,10 @@ class LiveStreamer:
         self.stats = StreamStats()
         self._model = None
         self._yolo_available = False
-        # {grid_key: last_counted_timestamp} — prevents re-counting same semi
-        self._semi_last_seen: dict = {}
+        # Presence-based semi deduplication:
+        # Only count a new semi once the previous one has fully cleared the cell.
+        self._semi_cell_last_frame: dict = {}   # grid_key -> last frame_count seen
+        self._semi_counted_cells:   set  = set() # cells occupied (need to clear before recount)
         self._load_yolo()
 
     # ── Model ────────────────────────────────────────────────────────────────
@@ -177,18 +179,31 @@ class LiveStreamer:
         min_width  = self.cfg.get('semi_min_width_px', 280)
         return aspect >= min_aspect and w >= min_width
 
-    def _should_count_semi(self, x1: int, y1: int, x2: int, y2: int) -> bool:
+    def _update_semi_cells(self, frame_count: int, active_cells: set):
         """
-        Rate-limit semi events to once per SEMI_COOLDOWN_SECS (default 300s = 5 min)
-        per coarse grid cell. Prevents a parked or slow-moving semi from being
-        counted on every detection cycle.
+        Expire grid cells that have been absent for >= semi_gap_frames.
+        Called once per detection cycle with the set of cells seen this frame.
         """
-        cooldown = self.cfg.get('semi_cooldown_secs', 300)
-        grid_key = (x1 // 120, y1 // 120)
-        now = time.time()
-        last = self._semi_last_seen.get(grid_key, 0)
-        if now - last >= cooldown:
-            self._semi_last_seen[grid_key] = now
+        gap = self.cfg.get('semi_gap_frames', 25)   # ~1.5s at 17fps
+        # Update last-seen frame for currently active cells
+        for cell in active_cells:
+            self._semi_cell_last_frame[cell] = frame_count
+        # Unblock cells that have been absent long enough to have fully cleared
+        cleared = {
+            cell for cell in self._semi_counted_cells
+            if frame_count - self._semi_cell_last_frame.get(cell, 0) >= gap
+        }
+        self._semi_counted_cells -= cleared
+
+    def _should_count_semi(self, grid_key: tuple) -> bool:
+        """
+        Return True (and mark cell occupied) only if this cell isn't already
+        occupied by a semi that hasn't cleared yet.
+        A parked semi stays in the cell → counted once, never recounted.
+        A moving semi clears the cell → next semi can be counted.
+        """
+        if grid_key not in self._semi_counted_cells:
+            self._semi_counted_cells.add(grid_key)
             return True
         return False
 
@@ -229,10 +244,12 @@ class LiveStreamer:
 
     # ── Overlay drawing ───────────────────────────────────────────────────────
 
-    def _draw_detections(self, frame, results):
+    def _draw_detections(self, frame, results, frame_count: int = 0):
         """Draw bounding boxes. Semis get red boxes and a violation label."""
         if results is None:
             return
+
+        active_semi_cells = set()
 
         for box in results[0].boxes:
             cls_id = int(box.cls[0])
@@ -251,9 +268,11 @@ class LiveStreamer:
                 color     = COLOR_SEMI
                 label     = f"53' SEMI - ILLEGAL  {conf:.0%}"
                 thickness = 3
+                grid_key  = (x1 // 120, y1 // 120)
+                active_semi_cells.add(grid_key)
 
-                # Only count if centroid is inside an active zone AND cooldown elapsed
-                if in_zone and self._should_count_semi(x1, y1, x2, y2):
+                # Count only if in a zone and cell hasn't been occupied since last clearance
+                if in_zone and self._should_count_semi(grid_key):
                     self.stats.add_semi()
                     logger.warning(f"Illegal 53' semi in zone at ({x1},{y1}) conf={conf:.0%}")
 
@@ -272,6 +291,9 @@ class LiveStreamer:
             cv2.rectangle(frame, (x1, y1 - lh - 8), (x1 + lw + 6, y1), color, -1)
             cv2.putText(frame, label, (x1 + 3, y1 - 4),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.55, (0, 0, 0), 1, cv2.LINE_AA)
+
+        # Expire cells that have been absent long enough to have cleared
+        self._update_semi_cells(frame_count, active_semi_cells)
 
     def _draw_zones(self, frame):
         zones = self.cfg.get('detection_zones', [])
@@ -399,7 +421,7 @@ class LiveStreamer:
 
                 # Draw overlays
                 self._draw_zones(frame)
-                self._draw_detections(frame, last_results)
+                self._draw_detections(frame, last_results, frame_count)
                 self._draw_stats_panel(frame, fps_actual, preview)
                 self._draw_watermark(frame)
 

@@ -86,9 +86,10 @@ def build_config() -> dict:
             'coordinates': [[880, 620], [1270, 620], [1270, 720], [880, 720]],
         },
         {
-            # Protected bike lane on Tenth Ave (center stripe, left of travel lane)
+            # Green-painted protected bike lane on Tenth Ave
+            # Right side of Tenth Ave (camera right of travel lanes)
             'name': 'bike_lane',
-            'coordinates': [[290, 470], [400, 465], [420, 690], [290, 690]],
+            'coordinates': [[555, 460], [640, 458], [660, 680], [575, 682]],
         },
     ]
 
@@ -105,7 +106,8 @@ def build_config() -> dict:
         'detection_zones':      detection_zones,
         'semi_aspect_ratio':    float(os.environ.get('SEMI_ASPECT_RATIO', 2.5)),
         'semi_min_width_px':    int(os.environ.get('SEMI_MIN_WIDTH_PX', 280)),
-        'semi_cooldown_secs':   int(os.environ.get('SEMI_COOLDOWN_SECS', 300)),
+        # Frames a cell must be absent before a new semi can be counted there (~1.5s at 17fps)
+        'semi_gap_frames':      int(os.environ.get('SEMI_GAP_FRAMES', 25)),
     }
 
 
