@@ -112,8 +112,8 @@ class LiveStreamer:
         self.stats = StreamStats()
         self._model = None
         self._yolo_available = False
-        # Track semi positions seen this session to avoid double-counting
-        self._seen_semis: set = set()
+        # {grid_key: last_counted_timestamp} — prevents re-counting same semi
+        self._semi_last_seen: dict = {}
         self._load_yolo()
 
     # ── Model ────────────────────────────────────────────────────────────────
@@ -127,6 +127,30 @@ class LiveStreamer:
             logger.info(f"YOLO loaded: {model_path}")
         except Exception as e:
             logger.warning(f"YOLO not available — running without detection: {e}")
+
+    # ── Zone membership ───────────────────────────────────────────────────────
+
+    @staticmethod
+    def _point_in_poly(px: int, py: int, poly: list) -> bool:
+        """Ray-casting point-in-polygon test."""
+        n = len(poly)
+        inside = False
+        x, y = px, py
+        j = n - 1
+        for i in range(n):
+            xi, yi = poly[i]
+            xj, yj = poly[j]
+            if ((yi > y) != (yj > y)) and (x < (xj - xi) * (y - yi) / (yj - yi) + xi):
+                inside = not inside
+            j = i
+        return inside
+
+    def _in_any_active_zone(self, cx: int, cy: int) -> bool:
+        """Return True if centroid (cx, cy) falls inside any configured zone."""
+        for zone in self.cfg.get('detection_zones', []):
+            if self._point_in_poly(cx, cy, zone['coordinates']):
+                return True
+        return False
 
     # ── Semi-truck classification ─────────────────────────────────────────────
 
@@ -152,6 +176,21 @@ class LiveStreamer:
         min_aspect = self.cfg.get('semi_aspect_ratio', 2.5)
         min_width  = self.cfg.get('semi_min_width_px', 280)
         return aspect >= min_aspect and w >= min_width
+
+    def _should_count_semi(self, x1: int, y1: int, x2: int, y2: int) -> bool:
+        """
+        Rate-limit semi events to once per SEMI_COOLDOWN_SECS (default 300s = 5 min)
+        per coarse grid cell. Prevents a parked or slow-moving semi from being
+        counted on every detection cycle.
+        """
+        cooldown = self.cfg.get('semi_cooldown_secs', 300)
+        grid_key = (x1 // 120, y1 // 120)
+        now = time.time()
+        last = self._semi_last_seen.get(grid_key, 0)
+        if now - last >= cooldown:
+            self._semi_last_seen[grid_key] = now
+            return True
+        return False
 
     # ── ffmpeg ────────────────────────────────────────────────────────────────
 
@@ -205,17 +244,18 @@ class LiveStreamer:
 
             x1, y1, x2, y2 = map(int, box.xyxy[0])
 
+            cx, cy = (x1 + x2) // 2, (y1 + y2) // 2
+            in_zone = self._in_any_active_zone(cx, cy)
+
             if self._is_semi(cls_id, x1, y1, x2, y2):
                 color     = COLOR_SEMI
                 label     = f"53' SEMI - ILLEGAL  {conf:.0%}"
                 thickness = 3
 
-                # Bucket position into coarse grid to avoid re-counting same vehicle
-                box_id = (x1 // 80, y1 // 80)
-                if box_id not in self._seen_semis:
-                    self._seen_semis.add(box_id)
+                # Only count if centroid is inside an active zone AND cooldown elapsed
+                if in_zone and self._should_count_semi(x1, y1, x2, y2):
                     self.stats.add_semi()
-                    logger.warning(f"Illegal 53' semi at ({x1},{y1}) conf={conf:.0%}")
+                    logger.warning(f"Illegal 53' semi in zone at ({x1},{y1}) conf={conf:.0%}")
 
                 # Subtle red fill
                 overlay = frame.copy()

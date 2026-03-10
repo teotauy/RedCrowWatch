@@ -65,22 +65,30 @@ def build_config() -> dict:
 
     rtsp_url = f"rtsp://{camera_user}:{camera_pass}@{camera_ip}:554/h264Preview_01_main"
 
-    # Detection zones — calibrated to tenthave/19thst camera angle
+    # Detection zones — Tenth Ave & 19th St, Brooklyn
+    # Satellite reference: parking lot is LEFT of camera view (excluded)
+    # Tenth Ave runs diagonally; 19th St crosses from the right
     detection_zones = [
         {
-            # Main road surface where moving vehicles travel
-            'name': 'intersection',
-            'coordinates': [[310, 420], [1100, 420], [1150, 650], [260, 650]],
+            # Tenth Ave travel lanes (diagonal, approaching intersection)
+            # Excludes the parking lot on the far left
+            'name': 'tenth_ave',
+            'coordinates': [[290, 470], [560, 460], [620, 680], [290, 690]],
         },
         {
-            # White-stripe crosswalk visible bottom-right
-            'name': 'crosswalk',
+            # Intersection box where Tenth Ave meets 19th St
+            'name': 'intersection',
+            'coordinates': [[560, 460], [980, 460], [980, 680], [620, 680]],
+        },
+        {
+            # 19th St approach and crosswalk (bottom right)
+            'name': '19th_st_crosswalk',
             'coordinates': [[880, 620], [1270, 620], [1270, 720], [880, 720]],
         },
         {
-            # Bike lane left side under overpass
+            # Protected bike lane on Tenth Ave (center stripe, left of travel lane)
             'name': 'bike_lane',
-            'coordinates': [[50, 430], [270, 430], [270, 700], [50, 700]],
+            'coordinates': [[290, 470], [400, 465], [420, 690], [290, 690]],
         },
     ]
 
@@ -97,6 +105,7 @@ def build_config() -> dict:
         'detection_zones':      detection_zones,
         'semi_aspect_ratio':    float(os.environ.get('SEMI_ASPECT_RATIO', 2.5)),
         'semi_min_width_px':    int(os.environ.get('SEMI_MIN_WIDTH_PX', 280)),
+        'semi_cooldown_secs':   int(os.environ.get('SEMI_COOLDOWN_SECS', 300)),
     }
 
 
