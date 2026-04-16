@@ -1,0 +1,67 @@
+{
+  "zones": [
+    {
+      "name": "tenth_ave",
+      "coordinates": [
+        [0, 717],
+        [491, 591],
+        [663, 665],
+        [508, 717]
+      ]
+    },
+    {
+      "name": "intersection",
+      "coordinates": [
+        [834, 471],
+        [1099, 534],
+        [937, 647],
+        [560, 536]
+      ]
+    },
+    {
+      "name": "bike_lane",
+      "coordinates": [
+        [2, 653],
+        [438, 571],
+        [479, 588],
+        [4, 695]
+      ]
+    },
+    {
+      "name": "crosswalk_tenth_ave",
+      "coordinates": [
+        [469, 572],
+        [577, 548],
+        [894, 640],
+        [751, 696]
+      ]
+    },
+    {
+      "name": "crosswalk_19th_st_north",
+      "coordinates": [
+        [510, 511],
+        [761, 448],
+        [826, 467],
+        [560, 532]
+      ]
+    },
+    {
+      "name": "crosswalk_19th_st_east",
+      "coordinates": [
+        [971, 640],
+        [1110, 533],
+        [1200, 553],
+        [1121, 637]
+      ]
+    },
+    {
+      "name": "semi_detection",
+      "coordinates": [
+        [498, 394],
+        [962, 406],
+        [936, 705],
+        [283, 703]
+      ]
+    }
+  ]
+}

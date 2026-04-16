@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RedCrowWatch Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: #0f0f0f;
+            color: #e0e0e0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            margin-bottom: 30px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 20px;
+        }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 300;
+            margin-bottom: 5px;
+        }
+
+        .subtitle {
+            color: #888;
+            font-size: 14px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .control-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        select, button {
+            padding: 8px 16px;
+            background: #1a1a1a;
+            border: 1px solid #333;
+            color: #e0e0e0;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        select:hover, button:hover {
+            border-color: #555;
+        }
+
+        button {
+            background: #222;
+            font-weight: 500;
+        }
+
+        button:active {
+            background: #333;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .stat-label {
+            font-size: 13px;
+            color: #888;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-value {
+            font-size: 36px;
+            font-weight: 300;
+            color: #fff;
+        }
+
+        .stat-subtext {
+            font-size: 12px;
+            color: #666;
+            margin-top: 8px;
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .chart-card {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .chart-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #fff;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+
+        .violations-list {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .violations-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #fff;
+        }
+
+        .violation-item {
+            padding: 12px 0;
+            border-bottom: 1px solid #222;
+            font-size: 13px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .violation-item:last-child {
+            border-bottom: none;
+        }
+
+        .violation-type {
+            font-weight: 500;
+            color: #e0e0e0;
+        }
+
+        .violation-time {
+            color: #888;
+        }
+
+        .violation-zone {
+            color: #666;
+            font-size: 12px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #888;
+        }
+
+        .error {
+            background: #2a1a1a;
+            border: 1px solid #663333;
+            border-radius: 4px;
+            padding: 15px;
+            color: #ff8888;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            h1 {
+                font-size: 22px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>RedCrowWatch Dashboard</h1>
+            <p class="subtitle">Traffic violation monitoring at Tenth Ave & 19th St, Brooklyn</p>
+
+            <div class="controls">
+                <div class="control-group">
+                    <label for="daysSelect">Time Range:</label>
+                    <select id="daysSelect">
+                        <option value="1">Last 24 hours</option>
+                        <option value="7" selected>Last 7 days</option>
+                        <option value="30">Last 30 days</option>
+                        <option value="90">Last 90 days</option>
+                    </select>
+                </div>
+                <button onclick="exportData()">Export CSV</button>
+                <button onclick="location.reload()">Refresh</button>
+            </div>
+        </header>
+
+        <div id="errorContainer"></div>
+
+        <div class="stats-grid" id="statsGrid">
+            <div class="loading">Loading data...</div>
+        </div>
+
+        <div class="charts-grid">
+            <div class="chart-card">
+                <div class="chart-title">Violations by Type</div>
+                <div class="chart-container">
+                    <canvas id="typeChart"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-card">
+                <div class="chart-title">Violations by Zone</div>
+                <div class="chart-container">
+                    <canvas id="zoneChart"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-card" style="grid-column: 1 / -1;">
+                <div class="chart-title">Violations Over Time</div>
+                <div class="chart-container" style="height: 250px;">
+                    <canvas id="timelineChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="violations-list">
+            <div class="violations-title">Recent Violations</div>
+            <div id="violationsList">
+                <div class="loading">Loading violations...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let typeChart, zoneChart, timelineChart;
+
+        document.getElementById('daysSelect').addEventListener('change', loadData);
+
+        async function loadData() {
+            const days = document.getElementById('daysSelect').value;
+
+            try {
+                const response = await axios.get(`/api/stats?days=${days}`);
+                const data = response.data;
+
+                renderStats(data);
+                renderCharts(data);
+                renderViolations(data.violations);
+            } catch (error) {
+                showError('Failed to load data: ' + error.message);
+            }
+        }
+
+        function renderStats(data) {
+            const typeBreakdown = Object.entries(data.by_type)
+                .map(([type, count]) => `${type}: ${count}`)
+                .join(' • ');
+
+            const html = `
+                <div class="stat-card">
+                    <div class="stat-label">Total Violations</div>
+                    <div class="stat-value">${data.total_violations}</div>
+                    <div class="stat-subtext">in selected period</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Violation Types</div>
+                    <div class="stat-value">${Object.keys(data.by_type).length}</div>
+                    <div class="stat-subtext">${typeBreakdown}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Active Zones</div>
+                    <div class="stat-value">${data.by_zone.length}</div>
+                    <div class="stat-subtext">${data.by_zone.map(z => z.zone).join(', ')}</div>
+                </div>
+            `;
+
+            document.getElementById('statsGrid').innerHTML = html;
+        }
+
+        function renderCharts(data) {
+            // Type breakdown chart
+            const typeCtx = document.getElementById('typeChart').getContext('2d');
+            if (typeChart) typeChart.destroy();
+
+            const typeLabels = Object.keys(data.by_type);
+            const typeValues = Object.values(data.by_type);
+            const typeColors = [
+                '#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#6c5ce7',
+                '#a29bfe', '#fd79a8', '#fdcb6e', '#6c5ce7', '#74b9ff'
+            ];
+
+            typeChart = new Chart(typeCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: typeLabels,
+                    datasets: [{
+                        data: typeValues,
+                        backgroundColor: typeColors.slice(0, typeLabels.length),
+                        borderColor: '#1a1a1a',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { color: '#e0e0e0', padding: 15 }
+                        }
+                    }
+                }
+            });
+
+            // Zone chart
+            const zoneCtx = document.getElementById('zoneChart').getContext('2d');
+            if (zoneChart) zoneChart.destroy();
+
+            const zoneLabels = data.by_zone.map(z => z.zone);
+            const zoneValues = data.by_zone.map(z => z.count);
+
+            zoneChart = new Chart(zoneCtx, {
+                type: 'bar',
+                data: {
+                    labels: zoneLabels,
+                    datasets: [{
+                        label: 'Violations',
+                        data: zoneValues,
+                        backgroundColor: '#45b7d1',
+                        borderRadius: 4,
+                        borderSkipped: false
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: '#222' },
+                            ticks: { color: '#888' }
+                        },
+                        y: {
+                            grid: { display: false },
+                            ticks: { color: '#888' }
+                        }
+                    }
+                }
+            });
+
+            // Timeline chart
+            const timelineCtx = document.getElementById('timelineChart').getContext('2d');
+            if (timelineChart) timelineChart.destroy();
+
+            const hourlyLabels = data.hourly.map(h => new Date(h.hour).toLocaleString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            })).reverse();
+            const hourlyValues = data.hourly.map(h => h.count).reverse();
+
+            timelineChart = new Chart(timelineCtx, {
+                type: 'line',
+                data: {
+                    labels: hourlyLabels,
+                    datasets: [{
+                        label: 'Violations',
+                        data: hourlyValues,
+                        borderColor: '#45b7d1',
+                        backgroundColor: 'rgba(69, 183, 209, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4,
+                        pointBackgroundColor: '#45b7d1',
+                        pointBorderColor: '#1a1a1a',
+                        pointBorderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: '#222' },
+                            ticks: { color: '#888', maxRotation: 45 }
+                        },
+                        y: {
+                            grid: { color: '#222' },
+                            ticks: { color: '#888' },
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderViolations(violations) {
+            if (!violations || violations.length === 0) {
+                document.getElementById('violationsList').innerHTML =
+                    '<div style="text-align: center; padding: 30px; color: #666;">No violations recorded in this period</div>';
+                return;
+            }
+
+            const html = violations.reverse().map(v => `
+                <div class="violation-item">
+                    <div>
+                        <div class="violation-type">${v.violation_type}</div>
+                        <div class="violation-zone">${v.zone || 'N/A'}</div>
+                    </div>
+                    <div class="violation-time">${new Date(v.timestamp).toLocaleString()}</div>
+                </div>
+            `).join('');
+
+            document.getElementById('violationsList').innerHTML = html;
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('errorContainer');
+            errorDiv.innerHTML = `<div class="error">${message}</div>`;
+        }
+
+        function exportData() {
+            const days = document.getElementById('daysSelect').value;
+            window.location.href = `/api/export?days=${days}`;
+        }
+
+        // Load data on page load
+        loadData();
+        // Refresh every 30 seconds
+        setInterval(loadData, 30000);
+    </script>
+</body>
+</html>

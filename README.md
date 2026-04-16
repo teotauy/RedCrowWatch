@@ -1,305 +1,333 @@
-# RedCrowWatch - AI-Powered Traffic Intersection Monitoring System
+# RedCrowWatch - Live Traffic Intersection Monitoring System
 
-A comprehensive, production-ready AI system that combines computer vision, audio analysis, and data visualization to monitor traffic intersections and detect violations in real-time.
+A real-time AI-powered traffic monitoring system for NYC intersections that streams directly to YouTube. Detects illegal 53-foot tractor-trailers, red-light runners, and counts pedestrian and vehicle traffic using computer vision and audio analysis.
 
-## 🚦 System Overview
+## System Overview
 
-RedCrowWatch is a full-stack AI-powered traffic monitoring system designed specifically for NYC intersections. It combines cutting-edge computer vision with advanced audio processing to detect traffic violations, safety concerns, and generate actionable insights for traffic safety improvement.
+RedCrowWatch combines YOLO v8 computer vision with live audio analysis to monitor traffic violations in real-time. The system streams to YouTube and maintains a local MJPEG preview server for network-based monitoring on phones/tablets.
+
+**Live at:** Tenth Ave & 19th St, Brooklyn  
+**Camera:** Reolink E1 Pro Outdoor (192.168.4.26)
 
 ### Key Features
-- **🎥 Multi-Modal AI Analysis**: Computer vision + audio processing + data correlation
-- **🌐 Modern Web Interface**: Drag-and-drop video upload with real-time progress tracking
-- **📊 Comprehensive Dashboards**: Interactive charts, heatmaps, and detailed analytics
-- **🔧 Camera Calibration**: Web-based and command-line calibration tools
-- **📱 Social Media Integration**: Automated Twitter posting with traffic safety insights
-- **🐳 Production Ready**: Docker containerization with cloud deployment support
+- Live Streaming: Real-time RTMP stream to YouTube
+- Illegal Semi Detection: Flags 53-foot tractor-trailers using aspect ratio + width heuristics
+- Red-Light Detection: Detects vehicles running red lights (requires signal calibration)
+- Audio Analysis: Horn honks and emergency siren detection
+- Pedestrian Counting: Real-time pedestrian detection and counting in designated zones
+- Live Statistics Panel: On-screen HUD showing violations, vehicle counts, emergencies
+- MJPEG Preview: Local HTTP stream for phone/browser viewing on same WiFi
+- Automated Scheduling: Cron-based auto-start/stop on weekday mornings and afternoons
 
-## 🏗️ Architecture & Components
-
-### Core System Architecture
-- **Multi-Modal Analysis Engine**: Combines video and audio processing for comprehensive traffic monitoring
-- **Modular Design**: Separate analyzers for video, audio, and integrated analysis
-- **Web Interface**: Modern Flask-based web application with Bootstrap 5 and Chart.js
-- **Deployment Ready**: Docker containerization with Railway, Render, and VPS support
-
-### Phase Structure
-- **Phase 1**: Manual prototype with basic violation detection ✅ **COMPLETED**
-- **Phase 1.5**: Automated data pipeline with continuous analysis 🔄 **IN PROGRESS**
-- **Phase 2**: Live stream experience with real-time monitoring 📋 **PLANNED**
-
-## 🎯 Core Functionality
-
-### 1. Video Analysis Engine
-- **YOLO v8 Integration**: Real-time object detection using ultralytics YOLO
-- **Vehicle Classification**: Cars, trucks, buses, motorcycles, bicycles
-- **Multi-Zone Detection**: 6 specialized detection zones for NYC intersection
-- **Traffic Signal Cycle Management**: 88-second cycle with 3 phases
-
-#### Violation Detection Types
-- **Red Light Running**: Uses traffic signal cycle logic with NYC right-on-red allowance
-- **Speeding**: Speed calculation with NYC-specific thresholds (25 mph limit)
-- **Wrong-Way Driving**: Direction-based violation detection
-- **Bike Lane Violations**: Non-bicycle vehicles in bike lanes
-- **Pedestrian Violations**: Vehicles blocking pedestrian crossings
-- **Bus Lane Violations**: Non-bus vehicles in bus lanes
-- **Expressway Offramp Violations**: Specialized offramp speed monitoring
-
-### 2. Audio Analysis Engine
-- **Multi-Format Support**: MP4, AVI, MOV, MKV, WMV with ffmpeg fallback
-- **Real-Time Analysis**: 22.05kHz sample rate with configurable parameters
-- **Spectral Analysis**: FFT-based frequency analysis for event detection
-
-#### Audio Event Detection
-- **Horn Honks**: 200-2000Hz frequency range, 0.1-3.0s duration
-- **Emergency Sirens**: 500-2000Hz frequency range, 2.0s+ duration
-- **Brake Squeals**: 2000-8000Hz frequency range, 0.05-0.5s duration
-- **Audio-Video Correlation**: Temporal correlation with 2-second time window
-
-### 3. Web Interface
-- **Modern Web Application**: Flask framework with Bootstrap 5 and Chart.js
-- **Drag & Drop Upload**: Support for multiple formats up to 500MB
-- **Real-Time Progress**: Live analysis progress with visual indicators
-- **Results Dashboard**: Comprehensive results with charts, tables, and visualizations
-- **Data Export**: CSV downloads and image exports
-
-### 4. Camera Calibration System
-- **Web-Based Calibration**: Point-and-click zone adjustment with real-time preview
-- **Command-Line Tools**: Video, live camera, and image-based calibration
-- **Backup/Restore**: Configuration backup and restoration
-- **Zone Management**: Individual zone reset and configuration
-
-### 5. Social Media Integration
-- **Twitter Bot**: Automated posting of daily summaries and violation alerts
-- **Educational Content**: Traffic safety awareness posts
-- **Engagement**: Reply to mentions and direct messages
-- **Content Generation**: Automated report generation and posting
-
-## 🚀 Quick Start
-
-### Option 1: Web Interface (Recommended)
-```bash
-# Start the web interface
-python3 start_web.py
-
-# Open your browser to http://localhost:5000
-# Upload a video and view results
-```
-
-### Option 2: Command Line Analysis
-```bash
-# Install dependencies
-pip install -r requirements.txt
-
-# Run analysis on a video file
-python3 src/main.py --input path/to/video.mp4 --post-to-twitter
-
-# View results in data/outputs/
-```
-
-### Option 3: Docker Deployment
-```bash
-# Build and run with Docker
-docker-compose up -d
-
-# Access at http://localhost:5000
-```
-
-## 🛠️ Installation & Setup
+## Quick Start
 
 ### Prerequisites
+- Reolink E1 Pro camera (or compatible RTSP camera)
 - Python 3.12+
-- OpenCV dependencies
-- FFmpeg (for audio processing)
-- Git
+- FFmpeg (for RTMP streaming and audio extraction)
+- YouTube Live Stream Key (for YouTube streaming)
 
 ### Installation
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/RedCrowWatch.git
+git clone https://github.com/colbyblack/RedCrowWatch.git
 cd RedCrowWatch
 
-# Install Python dependencies
+# Install dependencies
 pip install -r requirements.txt
 
-# Create necessary directories
-mkdir -p data/videos/raw data/outputs logs
+# Download YOLO model (first run only)
+python3 -c "from ultralytics import YOLO; YOLO('yolov8n.pt')"
 
-# Test the system
-python3 test_system.py
+# Set up environment variables
+cp .env.example .env
+# Edit .env with your camera IP, password, and YouTube stream key
+nano .env
 ```
 
 ### Configuration
-1. **Camera Setup**: Configure detection zones in `config/config.yaml`
-2. **Twitter Integration**: Set up Twitter API credentials (optional)
-3. **Calibration**: Use web interface or command-line tools to calibrate camera zones
+Create/edit `.env` with:
+```bash
+REOLINK_IP=192.168.4.26           # Camera IP on your home network
+REOLINK_USER=admin                 # Camera username
+REOLINK_PASS=your_password         # Camera password
+YOUTUBE_STREAM_KEY=your_key_here   # YouTube live stream key
 
-## 📊 Output & Results
+# Detection tuning (optional)
+SEMI_ASPECT_RATIO=2.5              # Min width/height ratio for 53-footer detection
+SEMI_MIN_WIDTH_PX=360              # Min pixel width for semi detection
+YOLO_IMGSZ=480                     # YOLO inference size (480 = faster, 640 = more accurate)
+DETECT_EVERY=3                     # Run YOLO every N frames (3 = ~8fps inference at 25fps stream)
 
-### Analysis Results
-- **Video Violations**: Timestamp, type, confidence, location, vehicle type, speed, zone
-- **Audio Events**: Timestamp, type, confidence, frequency, duration, decibel level
-- **Correlated Events**: Audio-video correlations with strength scores
-- **Summary Statistics**: Traffic intensity, safety scores, violation breakdowns
+# Red-light detection (requires calibration with C key)
+SIGNAL_CYCLE_SEC=90                # Full traffic signal cycle in seconds
+SIGNAL_GREEN_SEC=35                # Green phase duration for your direction
+SIGNAL_PHASE_OFFSET=0              # Set by pressing C in preview mode
 
-### Visualizations
-- **Comprehensive Dashboard**: Multi-panel analysis overview
-- **Violation Heatmap**: Geographic distribution of violations
-- **Daily Summary**: Summary statistics and trends
-- **Interactive Charts**: Doughnut charts, bar charts, line graphs
+# Pedestrian counting
+PED_ZONE=19th_st_crosswalk         # Zone to restrict pedestrian counting to
+PED_GAP_FRAMES=60                  # Frames before same pedestrian can be recounted
 
-### Data Export
-- **CSV Files**: All analysis data in CSV format
-- **Image Files**: Dashboard, heatmap, and summary images
-- **API Access**: JSON endpoints for programmatic access
+# Network/streaming
+MJPEG_PORT=8080                    # Local preview server port (0 = disabled)
+STREAM_WIDTH=1280
+STREAM_HEIGHT=720
+STREAM_FPS=25
+```
 
-## 🐳 Deployment Options
+### Running
 
-### Cloud Deployment (Recommended)
-- **Railway**: Free tier with automatic GitHub deployment
-- **Render**: Free tier with 750 hours/month
-- **PythonAnywhere**: Python-focused hosting
+**Stream to YouTube (production):**
+```bash
+python3 stream.py
+```
 
-### VPS Deployment
-- **Docker**: Complete containerization with docker-compose
-- **Manual**: Direct Python deployment with systemd
+**Local preview only (testing/calibration):**
+```bash
+python3 stream.py --preview
+```
 
-### Local Development
-- **Web Interface**: `python3 start_web.py`
-- **Docker**: `docker-compose up`
-- **Command Line**: Direct Python execution
+**Auto-start via cron (weekdays 7am-9am and 2:30pm-5:30pm):**
+```bash
+bash scripts/install_cron.sh
+# Edit START_TIME/STOP_TIME in scripts/install_cron.sh first if needed
+```
 
-## 🔧 Technical Stack
+**Manual start/stop:**
+```bash
+bash scripts/start_redcrowwatch.sh    # Start streaming
+bash scripts/stop_redcrowwatch.sh     # Stop gracefully
+```
 
-### Backend
-- **Python 3.12**: Core programming language
-- **Flask 3.1.2**: Web framework with blueprint architecture
-- **OpenCV 4.12.0.88**: Computer vision and image processing
-- **YOLO v8**: State-of-the-art object detection
-- **Librosa 0.11.0**: Audio processing and analysis
-- **Pandas 2.3.2**: Data manipulation and analysis
+## Detection Features
 
-### Frontend
-- **Bootstrap 5**: Responsive CSS framework
-- **Chart.js**: Interactive data visualization
-- **JavaScript ES6+**: Modern JavaScript with async/await
-- **HTML5**: Semantic markup with accessibility features
+### 1. Illegal 53-Foot Tractor-Trailers
+- **Detection Method**: YOLO class-7 (truck) with size filtering
+- **Thresholds**: Aspect ratio ≥ 2.5, width ≥ 360px (at intersection distance)
+- **False Positive Avoidance**: Zone-gated (only counts in semi_detection zone), excludes parked vehicles outside zones
+- **Size Reference**:
+  - Box truck (14-26ft): aspect ~1.8-2.9, width ~150-320px → NOT flagged
+  - 53ft semi+cab: aspect ~2.5-5.8, width ~360-700px → FLAGGED
+- **Tuning**: Set `SEMI_DEBUG=1` in `.env` and run `--preview` to see live aspect/width measurements on all trucks
 
-### Infrastructure
-- **Docker**: Application containerization
-- **Gunicorn**: Production WSGI server
-- **Railway/Render**: Cloud deployment platforms
-- **GitHub**: Source code hosting and CI/CD
+### 2. Red-Light Runners
+- **Detection Method**: Signal cycle timing + motion detection + zone presence
+- **Requirements**: 
+  1. Calibrate signal timing: run preview, press **C** when light turns red, copy `SIGNAL_PHASE_OFFSET` value to `.env`
+  2. Set `SIGNAL_CYCLE_SEC` and `SIGNAL_GREEN_SEC` in `.env`
+  3. Set `RED_LIGHT_ENABLED=1` in `.env`
+- **Motion Gate**: Only fires when pixel motion detected in intersection (stops false alarms on stationary cars)
+- **Grace Period**: 6-second grace period at red phase start (vehicles clearing on yellow)
 
-## 📁 Project Structure
+### 3. Horn Honks & Emergency Sirens
+- **Detection Method**: Spectral analysis on audio stream
+- **Horn Range**: 200-2000Hz, 0.5-3.0s duration
+- **Siren Range**: 500-2000Hz, 0.5s+ duration
+- **Cooldown**: 15 seconds between siren counts (prevents double-counting one passing vehicle)
+
+### 4. Pedestrian Counting
+- **Detection Method**: YOLO class-0 (person), zone-gated
+- **Deduplication**: 120px grid cells, clears after 60 frames (~3 seconds at 20fps)
+- **Zone Restriction**: Counts only in zone specified by `PED_ZONE` (e.g., crosswalks only)
+- **Use Case**: Traffic impact analysis, pedestrian volumes during rush hour
+
+### 5. Vehicle Counting
+- **Detection Method**: All vehicle classes (car, motorcycle, bus, truck) in any active zone
+- **Deduplication**: Per-frame, only counts new entries
+- **Zone-Gated**: Excludes far-away queued cars at distant traffic lights
+
+## Statistics Panel (Live HUD)
+
+The on-screen overlay shows in real-time:
+- **Timestamp** and uptime
+- **Signal State** (RED / GREEN / UNKNOWN)
+- **Vehicles** — total vehicles in zones
+- **Pedestrians** — total pedestrians in zones
+- **Violations** — combined count of all violation types
+- **53' Semis** — illegal trucks (in red)
+- **Red Lights** — red-light runners (in red)
+- **Horn Events** — horn honks detected
+- **Emergency** — sirens detected (in gold)
+
+## Network Access
+
+**YouTube Stream:**
+- View live at: YouTube Studio → live stream URL
+
+**Local MJPEG Preview (same WiFi as Mac):**
+- Find your Mac's IP: `ifconfig | grep "inet " | grep -v 127.0.0.1`
+- Open on phone: `http://<your-mac-ip>:8080/`
+
+**Cron Logs:**
+- View at: `logs/cron.log`
+
+**Stream Logs:**
+- View at: `logs/stream.log`
+
+## Calibration
+
+### Signal Timing Calibration (for red-light detection)
+1. Run preview: `python3 stream.py --preview`
+2. Watch the intersection, press **C** the instant the traffic light turns RED
+3. Terminal will print `SIGNAL_PHASE_OFFSET=<epoch_seconds>`
+4. Add to `.env`:
+   ```bash
+   SIGNAL_CYCLE_SEC=90    # Full red+green cycle time
+   SIGNAL_GREEN_SEC=35    # Green phase duration
+   SIGNAL_PHASE_OFFSET=<value from step 3>
+   ```
+5. Restart: `python3 stream.py --preview`
+6. Verify HUD shows "Signal: RED" / "Signal: GREEN" in sync with actual light
+7. Enable: `RED_LIGHT_ENABLED=1` in `.env`
+
+### Zone Editing (detection areas)
+1. Run: `python3 zones.py`
+2. Interactive editor opens with live camera feed
+3. Click to add/move zone points, drag to adjust
+4. Press 'n' for new zone, 'd' to delete current zone
+5. Close window to save
+
+**Standard zones:**
+- `tenth_ave` — Tenth Ave approach
+- `intersection` — the main intersection box (red-light zone)
+- `semi_detection` — where semis are flagged
+- `19th_st_crosswalk` — pedestrian zone
+- `bike_lane` — bike lane area
+
+## Project Structure
 
 ```
 RedCrowWatch/
-├── src/                           # Source code
-│   ├── analysis/                  # Analysis modules
-│   │   ├── integrated_analyzer.py # Multi-modal analysis
-│   │   ├── video_analyzer.py      # Computer vision
-│   │   ├── audio_analyzer.py      # Audio processing
-│   │   ├── nyc_intersection_analyzer.py # NYC-specific analysis
-│   │   └── traffic_signal_cycle.py # Traffic signal management
-│   ├── visualization/             # Data visualization
-│   │   └── traffic_dashboard.py   # Dashboard generation
-│   ├── social/                    # Social media integration
-│   │   └── twitter_bot.py         # Twitter automation
-│   └── calibration/               # Camera calibration
-│       ├── camera_calibrator.py   # Command-line calibration
-│       └── web_calibrator.py      # Web-based calibration
-├── templates/                     # HTML templates
-│   ├── base.html                  # Base template
-│   ├── index.html                 # Upload page
-│   ├── results.html               # Results dashboard
-│   └── calibration.html           # Calibration interface
-├── static/                        # Static assets
-├── data/                          # Data storage
-│   ├── videos/raw/               # Uploaded videos
-│   ├── videos/processed/         # Processed videos
-│   └── outputs/                  # Analysis results
-├── config/                        # Configuration
-│   └── config.yaml               # Main configuration
-├── web_app.py                     # Flask web application
-├── start_web.py                   # Web interface startup
-├── start.py                       # Railway deployment startup
-├── docker-compose.yml             # Docker orchestration
-├── Dockerfile                     # Docker container definition
+├── stream.py                       # Main entry point for streaming
+├── zones.py                        # Interactive zone editor
+├── .env                            # Configuration (create from .env.example)
+├── zones.json                      # Saved detection zones (auto-generated)
+│
+├── src/streaming/
+│   ├── live_streamer.py           # Core streaming pipeline & YOLO detection
+│   └── mjpeg_server.py            # Local MJPEG preview server
+│
+├── src/analysis/
+│   └── audio_analyzer.py          # Horn/siren detection via spectral analysis
+│
+├── scripts/
+│   ├── start_redcrowwatch.sh      # Idempotent start script
+│   ├── stop_redcrowwatch.sh       # Graceful stop script
+│   └── install_cron.sh            # Install cron schedule (weekday mornings/afternoons)
+│
+├── logs/
+│   ├── stream.log                 # Live stream output and errors
+│   └── cron.log                   # Cron execution logs
+│
 └── requirements.txt               # Python dependencies
 ```
 
-## 🔒 Security & Compliance
+## Technical Stack
 
-### Security Features
-- **File Validation**: Comprehensive file type and size validation
-- **Input Sanitization**: Protection against XSS and injection attacks
-- **Secure Filenames**: Prevention of path traversal attacks
-- **Error Handling**: Graceful error handling without information leakage
+- **Python 3.12** — Core language
+- **YOLO v8 Nano** — Real-time object detection (ultralytics)
+- **OpenCV 4.10+** — Video capture and frame processing
+- **FFmpeg** — RTSP client and RTMP streaming backend
+- **LibROSA 0.11+** — Audio spectral analysis for horn/siren detection
+- **NumPy** — Numerical operations
+- **YouTube RTMP** — Live streaming protocol
 
-### Privacy Considerations
-- **Local Processing**: All analysis performed locally
-- **Data Retention**: Configurable data retention periods
-- **No Personal Data**: System does not collect personal information
-- **Public Monitoring**: Designed for public intersection monitoring
+## Performance Tuning
 
-## 🚀 Future Enhancements
+### If buffering in the YouTube stream:
+1. Lower `YOLO_IMGSZ` in `.env`: `YOLO_IMGSZ=320` (faster but less accurate)
+2. Increase `DETECT_EVERY`: `DETECT_EVERY=4` (run YOLO less often)
+3. Reduce `STREAM_FPS`: `STREAM_FPS=20` (lower framerate)
 
-### Planned Features
-- **Real-Time Streaming**: Live video analysis capabilities
-- **User Authentication**: Secure user accounts and access control
-- **Database Integration**: Persistent data storage with PostgreSQL
-- **Mobile App**: Native mobile interface
-- **Multi-Camera Support**: Support for multiple camera feeds
-- **Advanced Analytics**: Machine learning for pattern recognition
+### If missing vehicle detections:
+1. Raise `YOLO_IMGSZ`: `YOLO_IMGSZ=640` (slower, more accurate)
+2. Lower `DETECT_EVERY`: `DETECT_EVERY=2` (run YOLO more often)
 
-## 📞 Support & Documentation
+### If false positive semis (box trucks being flagged):
+1. Raise `SEMI_ASPECT_RATIO`: `SEMI_ASPECT_RATIO=3.0`
+2. Raise `SEMI_MIN_WIDTH_PX`: `SEMI_MIN_WIDTH_PX=400`
 
-### Documentation
-- **Complete Functionality**: `COMPLETE_FUNCTIONALITY_DOCUMENTATION.md`
-- **Tech Stack Breakdown**: `TECH_STACK_BREAKDOWN.md`
-- **Camera Calibration**: `CAMERA_CALIBRATION_README.md`
-- **Web Interface**: `WEB_INTERFACE_README.md`
-- **Deployment Guide**: `DEPLOYMENT_GUIDE.md`
+### If missing real semis:
+1. Lower `SEMI_ASPECT_RATIO`: `SEMI_ASPECT_RATIO=2.3`
+2. Lower `SEMI_MIN_WIDTH_PX`: `SEMI_MIN_WIDTH_PX=340`
 
-### Troubleshooting
-- **System Test**: `python3 test_system.py`
-- **Health Check**: `curl http://localhost:5000/health`
-- **Logs**: Check `logs/redcrowwatch.log` for detailed information
+**Tip:** Use `SEMI_DEBUG=1` in `.env` with `--preview` to see exact width/aspect measurements on every truck passing by.
 
-## 🎯 Use Cases
+## Security & Privacy
 
-### Primary Use Cases
-- **Traffic Safety Monitoring**: Detect and report traffic violations
-- **Intersection Analysis**: Understand traffic patterns and safety concerns
-- **Data Collection**: Gather traffic data for safety improvements
-- **Public Awareness**: Share traffic safety information via social media
+- **Local Processing**: All video analysis done locally; no cloud inference
+- **Network**: RTSP stream from camera is encrypted (RTLS supports both HTTP and HTTPS)
+- **Audio**: Only spectral features extracted, no audio stored or transmitted
+- **YouTube**: Standard YouTube live stream terms apply
+- **Logs**: Stream logs contain timestamps and violation data only, no video frames
 
-### Secondary Use Cases
-- **Research**: Academic research on traffic patterns
-- **Urban Planning**: Data for intersection design improvements
-- **Community Engagement**: Public awareness and education
+## Use Cases
 
-## 📈 Performance Metrics
+- **DOT Traffic Analysis**: Data for intersection redesign and safety improvements
+- **Community Board Advocacy**: Evidence of traffic violations for policy discussions
+- **Carrier Accountability**: Tracking which companies run red lights or use oversized vehicles
+- **Safety Research**: Academic research on traffic patterns and violations
 
-### System Performance
-- **Processing Speed**: ~2 frames per second analysis rate
-- **File Size Support**: Up to 500MB video files
-- **Detection Accuracy**: YOLO v8 with 85%+ accuracy on vehicle detection
-- **Audio Detection**: Spectral analysis with configurable thresholds
+## Troubleshooting
+
+### Camera not found
+```bash
+# Check camera is on same WiFi
+ping 192.168.4.26
+
+# Verify .env credentials match Reolink app
+cat .env | grep REOLINK
+```
+
+### Stream won't start (ffmpeg error)
+```bash
+# Ensure full PATH is set (cron uses stripped PATH)
+which ffmpeg
+export PATH="/opt/homebrew/bin:$PATH"
+python3 stream.py
+```
+
+### YouTube stream starts but no video appears
+- Check YouTube Studio shows stream as "Live"
+- Verify YouTube Stream Key in `.env` matches Studio settings
+- Wait 10-30 seconds for stream to buffer on YouTube's end
+
+### Red-light detection firing constantly
+- Disable with `RED_LIGHT_ENABLED=0` while debugging
+- Calibrate signal timing again with **C** key in preview
+- Check motion gate is enabled (default: on)
+
+### High CPU usage / buffering
+- See "Performance Tuning" section above
+- Reduce `STREAM_FPS` or increase `DETECT_EVERY`
+
+## Future Roadmap
+
+Near-term (6-12 months):
+- Carrier Logo Recognition: Identify Amazon, FedEx, XPO, etc. on trailer sides to track company-specific violations
+- Per-Carrier Violation Reporting: Dashboard showing violation counts broken down by shipping company
+- Multi-Intersection Support: Deploy to additional NYC intersections (Broadway & Canal, Atlantic & Flatbush, etc.)
+
+Medium-term (1-2 years):
+- Web Dashboard: Centralized view of violations across multiple intersections with filtering and export
+- Historical Analysis: Trend detection and reporting on violation patterns over time
+- Citation Integration: Data formatted for NYPD/DOT enforcement workflows
+- Traffic Signal Timing Analysis: Recommend signal cycle adjustments based on observed traffic patterns
+
+Long-term (2+ years):
+- Real-Time Alert System: Notifications to traffic management centers during peak violation periods
+- Predictive Models: Identify high-risk times and conditions for traffic enforcement planning
+- Equity Analysis: Ensure monitoring data is representative of actual street usage patterns
+- Community Reporting: Public API for sharing anonymized violation data with community boards
+
+## Support
+
+For issues or questions:
+1. Check `logs/stream.log` for error details
+2. Run `python3 stream.py --preview` to test locally
+3. Verify `.env` configuration matches your camera and network
+4. Check GitHub issues or create a new one
 
 ---
 
-**RedCrowWatch** represents a comprehensive, production-ready traffic monitoring solution that combines cutting-edge AI technology with practical deployment considerations. The system is designed to be both powerful and accessible, making advanced traffic analysis available to communities and organizations working to improve traffic safety.
-
-## Legal Considerations
-
-⚠️ **Important**: This system monitors public intersections. Ensure compliance with:
-- Local privacy laws
-- Traffic monitoring regulations
-- Data retention policies
-- Social media platform terms of service
-
-## Contributing
-
-This is a personal project for traffic safety awareness and data collection. Contributions are welcome!
-
+**RedCrowWatch** is a volunteer traffic safety project designed to help communities collect data on dangerous vehicles and advocate for safer streets using real-time AI analysis.

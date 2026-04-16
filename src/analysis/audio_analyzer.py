@@ -144,9 +144,12 @@ class AudioAnalyzer:
                             'duration': duration
                         })
             
-            logger.info(f"Detected {len(events)} horn honks")
+            if events:
+                logger.info(f"Detected {len(events)} horn honks")
+            else:
+                logger.debug("Detected 0 horn honks")
             return events
-            
+
         except Exception as e:
             logger.error(f"Horn detection failed: {e}")
             return []
@@ -198,9 +201,12 @@ class AudioAnalyzer:
                             })
                     in_siren = False
             
-            logger.info(f"Detected {len(events)} sirens")
+            if events:
+                logger.info(f"Detected {len(events)} sirens")
+            else:
+                logger.debug("Detected 0 sirens")
             return events
-            
+
         except Exception as e:
             logger.error(f"Siren detection failed: {e}")
             return []
