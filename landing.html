@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RedCrowWatch - Traffic Monitoring</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 100%);
+            color: #e0e0e0;
+            line-height: 1.6;
+        }
+
+        header {
+            background: rgba(0, 0, 0, 0.5);
+            border-bottom: 1px solid #333;
+            padding: 20px 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 300;
+            margin-bottom: 5px;
+        }
+
+        .subtitle {
+            color: #888;
+            font-size: 16px;
+        }
+
+        .hero {
+            padding: 60px 20px;
+            text-align: center;
+        }
+
+        .hero h2 {
+            font-size: 36px;
+            font-weight: 300;
+            margin-bottom: 20px;
+            color: #fff;
+        }
+
+        .hero p {
+            font-size: 18px;
+            color: #aaa;
+            margin-bottom: 30px;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .cta-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #45b7d1 0%, #3a9bb3 100%);
+            color: #fff;
+            padding: 16px 40px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 16px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+        }
+
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(69, 183, 209, 0.3);
+        }
+
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 30px;
+            padding: 60px 20px;
+            border-top: 1px solid #222;
+        }
+
+        .feature {
+            background: rgba(26, 26, 26, 0.8);
+            border: 1px solid #333;
+            padding: 30px;
+            border-radius: 8px;
+        }
+
+        .feature h3 {
+            font-size: 18px;
+            margin-bottom: 15px;
+            color: #45b7d1;
+        }
+
+        .feature p {
+            color: #aaa;
+            font-size: 14px;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            padding: 40px 20px;
+            background: rgba(69, 183, 209, 0.05);
+            border-radius: 8px;
+            margin-top: 40px;
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 32px;
+            font-weight: 300;
+            color: #45b7d1;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 13px;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        footer {
+            border-top: 1px solid #222;
+            padding: 40px 20px;
+            text-align: center;
+            color: #666;
+            font-size: 13px;
+        }
+
+        .info-box {
+            background: rgba(69, 183, 209, 0.1);
+            border: 1px solid #45b7d1;
+            border-radius: 6px;
+            padding: 20px;
+            margin: 40px 20px;
+            color: #b8e6f0;
+        }
+
+        @media (max-width: 768px) {
+            .hero h2 {
+                font-size: 24px;
+            }
+
+            h1 {
+                font-size: 22px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>RedCrowWatch</h1>
+            <p class="subtitle">AI-Powered Traffic Monitoring for NYC Intersections</p>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="hero">
+            <h2>Live Traffic Violation Monitoring</h2>
+            <p>Real-time detection of illegal 53-foot tractor-trailers, red-light runners, and pedestrian safety violations at Tenth Ave & 19th St, Brooklyn.</p>
+            <a href="https://redcrowwatch.onrender.com" class="cta-button">View Live Dashboard</a>
+        </div>
+
+        <div class="info-box">
+            <strong>📊 Live Demo:</strong> Click above to see real-time violation data, charts, and analytics. The dashboard updates every 30 seconds.
+        </div>
+
+        <div class="features">
+            <div class="feature">
+                <h3>Illegally Sized Semis</h3>
+                <p>Detects 53-foot tractor-trailers in restricted zones using computer vision and aspect ratio analysis.</p>
+            </div>
+
+            <div class="feature">
+                <h3>Red-Light Runners</h3>
+                <p>Identifies vehicles running red lights using signal timing calibration and motion detection.</p>
+            </div>
+
+            <div class="feature">
+                <h3>Pedestrian Safety</h3>
+                <p>Tracks mid-cycle stranding — pedestrians still in the crosswalk when the signal changes.</p>
+            </div>
+
+            <div class="feature">
+                <h3>Emergency Response</h3>
+                <p>Detects sirens and horn events for emergency vehicle tracking and incident correlation.</p>
+            </div>
+
+            <div class="feature">
+                <h3>Real-Time Analytics</h3>
+                <p>Live statistics panel and comprehensive dashboard with historical trend analysis.</p>
+            </div>
+
+            <div class="feature">
+                <h3>Data Export</h3>
+                <p>Download violation data as CSV for analysis, reporting, and policy advocacy.</p>
+            </div>
+        </div>
+
+        <div class="stats">
+            <div class="stat">
+                <div class="stat-number">24/7</div>
+                <div class="stat-label">Continuous Monitoring</div>
+            </div>
+            <div class="stat">
+                <div class="stat-number">5</div>
+                <div class="stat-label">Violation Types Tracked</div>
+            </div>
+            <div class="stat">
+                <div class="stat-number">~1280x720</div>
+                <div class="stat-label">Stream Resolution</div>
+            </div>
+            <div class="stat">
+                <div class="stat-number">YOLO v8</div>
+                <div class="stat-label">Detection Engine</div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <p>RedCrowWatch — Civic technology for traffic safety advocacy</p>
+        <p><a href="https://github.com/teotauy/RedCrowWatch" style="color: #45b7d1; text-decoration: none;">View on GitHub</a> • <a href="https://redcrowwatch.onrender.com" style="color: #45b7d1; text-decoration: none;">Live Dashboard</a></p>
+    </footer>
+</body>
+</html>
