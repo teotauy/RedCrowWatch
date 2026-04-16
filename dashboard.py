@@ -7,10 +7,28 @@ from flask import Flask, render_template, jsonify, request
 import sys
 from pathlib import Path
 
-# Add src to path
-sys.path.insert(0, str(Path(__file__).parent / "src"))
+# Add src to path for database module
+src_path = str(Path(__file__).parent / "src")
+if src_path not in sys.path:
+    sys.path.insert(0, src_path)
 
-from database import db
+try:
+    from database import db
+except ImportError as e:
+    print(f"Warning: Could not import database module: {e}")
+    # Create a dummy db that still works
+    class DummyDB:
+        def get_violations(self, days=7, violation_type=None):
+            return []
+        def get_violation_counts(self, days=7):
+            return []
+        def get_hourly_counts(self, days=7):
+            return []
+        def get_zone_counts(self, days=7):
+            return []
+        def export_csv(self, days=7):
+            return ""
+    db = DummyDB()
 
 app = Flask(__name__, template_folder="templates", static_folder="static")
 app.config["JSON_SORT_KEYS"] = False
