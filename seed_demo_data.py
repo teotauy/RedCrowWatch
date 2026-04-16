@@ -1,121 +1,124 @@
 #!/usr/bin/env python3
-"""Seed the database with demo violations for testing the dashboard."""
+"""Seed the database with demo violations for testing the dashboard.
+
+Usage:
+  python seed_demo_data.py          # Full reset: wipe and seed 7 days of data
+  python seed_demo_data.py --daily  # Additive: append today's violations only (safe with real data)
+"""
 
 import sys
+import sqlite3
+import random
 from pathlib import Path
 from datetime import datetime, timedelta
-import random
 
 sys.path.insert(0, str(Path(__file__).parent / "src"))
+from database import ViolationDB
 
-from database import db
-
-# Clear existing data
-import sqlite3
 db_path = Path(__file__).parent / "data" / "redcrowwatch.db"
-if db_path.exists():
-    conn = sqlite3.connect(str(db_path))
-    conn.execute("DELETE FROM violations")
-    conn.execute("DELETE FROM vehicles")
-    conn.execute("DELETE FROM pedestrians")
-    conn.commit()
-    conn.close()
-    print("Cleared existing data")
+db_path.parent.mkdir(exist_ok=True)
 
-# Re-init database
-db = db.__class__(str(db_path))
-print("Initialized fresh database")
-
-# Demo zones
-zones = ["intersection", "tenth_ave", "semi_detection", "19th_st_crosswalk", "bike_lane"]
-violation_types = [
+ZONES = ["intersection", "tenth_ave", "semi_detection", "19th_st_crosswalk", "bike_lane"]
+VIOLATION_TYPES = [
     "illegally_sized_semi",
     "red_light_runner",
     "horn_honk",
     "siren_detected",
-    "pedestrian_mid_cycle_stranding",  # People still in crosswalk when signal changes
+    "pedestrian_mid_cycle_stranding",
 ]
 
-# Generate 150 violations over the last 7 days
-now = datetime.now()
-for i in range(150):
-    # Random timestamp in last 7 days
-    days_back = random.randint(0, 7)
-    hours_back = random.randint(0, 23)
-    minutes_back = random.randint(0, 59)
+# Realistic hourly weights: heavier during rush hours, light overnight
+HOUR_WEIGHTS = [
+    0.2, 0.1, 0.1, 0.1, 0.2, 0.4,   # 0-5am
+    0.8, 2.5, 3.0, 2.0, 1.5, 1.5,   # 6-11am (morning rush peaks 8-9)
+    1.5, 1.5, 1.5, 1.8, 2.8, 3.0,   # 12-5pm (afternoon rush peaks 4-5)
+    2.5, 1.8, 1.2, 0.8, 0.5, 0.3,   # 6-11pm
+]
 
-    violation_time = now - timedelta(days=days_back, hours=hours_back, minutes=minutes_back)
 
-    violation_type = random.choice(violation_types)
-    zone = random.choice(zones)
-    confidence = random.uniform(0.7, 0.99)
-
-    # Insert directly to get specific timestamps
-    conn = sqlite3.connect(str(db_path))
+def insert_violation(conn, ts, violation_type, zone, confidence):
     conn.execute(
-        """
-        INSERT INTO violations (timestamp, violation_type, zone, confidence)
-        VALUES (?, ?, ?, ?)
-        """,
-        (violation_time.isoformat(), violation_type, zone, confidence)
+        "INSERT INTO violations (timestamp, violation_type, zone, confidence) VALUES (?, ?, ?, ?)",
+        (ts.isoformat(), violation_type, zone, confidence)
     )
-    conn.commit()
-    conn.close()
 
-print("✓ Generated 150 demo violations")
 
-# Generate vehicle count snapshots
-vehicle_classes = ["car", "truck", "bus", "moto"]
-for i in range(100):
-    days_back = random.randint(0, 7)
-    hours_back = random.randint(0, 23)
-
-    count_time = now - timedelta(days=days_back, hours=hours_back)
-    count = random.randint(5, 50)
-    zone = random.choice(zones)
-    vehicle_class = random.choice(vehicle_classes)
-
-    conn = sqlite3.connect(str(db_path))
+def insert_vehicle(conn, ts, zone):
     conn.execute(
         "INSERT INTO vehicles (timestamp, count, zone, vehicle_class) VALUES (?, ?, ?, ?)",
-        (count_time.isoformat(), count, zone, vehicle_class)
+        (ts.isoformat(), random.randint(5, 50), zone, random.choice(["car", "truck", "bus", "moto"]))
     )
-    conn.commit()
-    conn.close()
 
-print("✓ Generated 100 vehicle count snapshots")
 
-# Generate pedestrian count snapshots
-for i in range(80):
-    days_back = random.randint(0, 7)
-    hours_back = random.randint(0, 23)
-
-    count_time = now - timedelta(days=days_back, hours=hours_back)
-    count = random.randint(1, 20)
-    zone = random.choice(["19th_st_crosswalk", "bike_lane"])
-
-    conn = sqlite3.connect(str(db_path))
+def insert_pedestrian(conn, ts, zone):
     conn.execute(
         "INSERT INTO pedestrians (timestamp, count, zone) VALUES (?, ?, ?)",
-        (count_time.isoformat(), count, zone)
+        (ts.isoformat(), random.randint(1, 20), zone)
     )
+
+
+def seed_day(conn, day_start, n_violations=20):
+    """Seed a single day's worth of violations with realistic hour weighting."""
+    for _ in range(n_violations):
+        hour = random.choices(range(24), weights=HOUR_WEIGHTS, k=1)[0]
+        minute = random.randint(0, 59)
+        ts = day_start + timedelta(hours=hour, minutes=minute)
+        insert_violation(conn, ts, random.choice(VIOLATION_TYPES), random.choice(ZONES), random.uniform(0.7, 0.99))
+
+    # A handful of vehicle and ped counts per day
+    for _ in range(14):
+        hour = random.randint(6, 22)
+        ts = day_start + timedelta(hours=hour, minutes=random.randint(0, 59))
+        insert_vehicle(conn, ts, random.choice(ZONES))
+
+    for _ in range(11):
+        hour = random.randint(7, 21)
+        ts = day_start + timedelta(hours=hour, minutes=random.randint(0, 59))
+        insert_pedestrian(conn, ts, random.choice(["19th_st_crosswalk", "bike_lane"]))
+
+
+daily_mode = "--daily" in sys.argv
+
+db = ViolationDB(str(db_path))
+conn = sqlite3.connect(str(db_path))
+
+if daily_mode:
+    # Additive: just add today. Safe to run while real data is accumulating.
+    today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    seed_day(conn, today, n_violations=20)
     conn.commit()
     conn.close()
+    print(f"✓ Added ~20 demo violations for {today.strftime('%A %b %d')}")
+    print("  (--daily mode: existing data preserved)")
 
-print("✓ Generated 80 pedestrian count snapshots")
+else:
+    # Full reset: wipe everything and seed 7 complete days
+    conn.execute("DELETE FROM violations")
+    conn.execute("DELETE FROM vehicles")
+    conn.execute("DELETE FROM pedestrians")
+    conn.commit()
+    print("Cleared existing data")
 
-# Show summary
-violations = db.get_violations(7)
-counts = db.get_violation_counts(7)
+    now = datetime.now()
+    total = 0
+    for days_back in range(7, -1, -1):
+        day_start = (now - timedelta(days=days_back)).replace(hour=0, minute=0, second=0, microsecond=0)
+        n = random.randint(15, 25)
+        seed_day(conn, day_start, n_violations=n)
+        total += n
 
-print("\n" + "="*50)
-print("Demo Data Summary (Last 7 Days)")
-print("="*50)
-print(f"Total violations: {len(violations)}")
-print(f"\nBreakdown by type:")
-for item in counts:
-    print(f"  {item['violation_type']}: {item['count']}")
+    conn.commit()
+    conn.close()
+    print(f"✓ Generated ~{total} demo violations across 8 days")
 
-print("\n✓ Ready to test dashboard!")
-print("\nRun:  python3 dashboard.py")
-print("Then visit: http://localhost:5000")
+    # Summary
+    violations = db.get_violations(7)
+    counts = db.get_violation_counts(7)
+    print("\n" + "=" * 50)
+    print("Demo Data Summary (Last 7 Days)")
+    print("=" * 50)
+    print(f"Total violations: {len(violations)}")
+    print("\nBreakdown by type:")
+    for item in counts:
+        print(f"  {item['violation_type']}: {item['count']}")
+    print("\n✓ Ready to test dashboard!")

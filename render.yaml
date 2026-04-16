@@ -10,8 +10,8 @@ services:
         value: 3.12
 
   - type: cron
-    name: redcrowwatch-reseed
+    name: redcrowwatch-daily-seed
     env: python
-    schedule: "0 6 * * 1"
+    schedule: "0 6 * * *"
     buildCommand: pip install -r requirements.txt
-    startCommand: python seed_demo_data.py
+    startCommand: python seed_demo_data.py --daily
