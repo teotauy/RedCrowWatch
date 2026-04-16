@@ -194,6 +194,57 @@
             margin-bottom: 20px;
         }
 
+        .demo-banner {
+            background: #1a1208;
+            border: 1px solid #5a3e10;
+            border-radius: 6px;
+            padding: 12px 18px;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+            color: #c8a96e;
+        }
+
+        .demo-banner-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #c8a96e;
+            flex-shrink: 0;
+        }
+
+        .site-footer {
+            margin-top: 48px;
+            padding-top: 24px;
+            padding-bottom: 24px;
+            border-top: 1px solid #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            font-size: 13px;
+            color: #666;
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .footer-links a {
+            color: #666;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .footer-links a:hover {
+            color: #e0e0e0;
+        }
+
         @media (max-width: 768px) {
             .charts-grid {
                 grid-template-columns: 1fr;
@@ -205,6 +256,11 @@
 
             h1 {
                 font-size: 22px;
+            }
+
+            .site-footer {
+                flex-direction: column;
+                align-items: flex-start;
             }
         }
     </style>
@@ -229,6 +285,11 @@
                 <button onclick="location.reload()">Refresh</button>
             </div>
         </header>
+
+        <div class="demo-banner">
+            <div class="demo-banner-dot"></div>
+            <span><strong>Sample data.</strong> This dashboard currently displays simulated violation data. Live monitoring data will replace this when the system is fully operational at Tenth Ave &amp; 19th St, Brooklyn.</span>
+        </div>
 
         <div id="errorContainer"></div>
 
@@ -265,6 +326,18 @@
                 <div class="loading">Loading violations...</div>
             </div>
         </div>
+
+        <footer class="site-footer">
+            <span>&copy; Red Crow Labs</span>
+            <nav class="footer-links">
+                <a href="https://redcrowlabs.com" target="_blank" rel="noopener">Red Crow Labs</a>
+                <a href="https://github.com/teotauy/RedCrowWatch" target="_blank" rel="noopener">GitHub</a>
+                <a href="https://www.linkedin.com/in/colbyangusblack/" target="_blank" rel="noopener">LinkedIn</a>
+                <a href="mailto:colby@colbyangusblack.com">Contact</a>
+                <a href="/privacy">Privacy Policy</a>
+                <a href="/terms">Terms of Use</a>
+            </nav>
+        </footer>
     </div>
 
     <script>

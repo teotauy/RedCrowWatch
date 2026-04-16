@@ -2,9 +2,16 @@ services:
   - type: web
     name: redcrowwatch-dashboard
     env: python
-    plan: free
+    plan: starter
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn --bind 0.0.0.0:$PORT --timeout 120 dashboard:app
     envVars:
       - key: PYTHON_VERSION
         value: 3.12
+
+  - type: cron
+    name: redcrowwatch-reseed
+    env: python
+    schedule: "0 6 * * 1"
+    buildCommand: pip install -r requirements.txt
+    startCommand: python seed_demo_data.py

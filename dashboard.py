@@ -84,6 +84,18 @@ def api_export():
     return csv_data, 200, {"Content-Disposition": "attachment; filename=violations.csv"}
 
 
+@app.route("/privacy")
+def privacy():
+    """Privacy policy page."""
+    return render_template("privacy.html")
+
+
+@app.route("/terms")
+def terms():
+    """Terms of service page."""
+    return render_template("terms.html")
+
+
 @app.route("/health")
 def health():
     """Health check."""
