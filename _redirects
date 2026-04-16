@@ -1,0 +1,6 @@
+# Reverse proxy RedCrowWatch dashboard to Render
+/redcrowwatch/*  https://redcrowwatch.onrender.com/:splat  200
+/api/*           https://redcrowwatch.onrender.com/api/:splat  200
+
+# Fallback: serve SPA properly (keep root as index.html)
+/*               /index.html                                   200
