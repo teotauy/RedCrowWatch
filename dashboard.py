@@ -73,6 +73,7 @@ def health():
 
 
 if __name__ == "__main__":
-    port = int(os.environ.get("DASHBOARD_PORT", 5001))
+    # Railway sets PORT, otherwise use 5001 for local dev
+    port = int(os.environ.get("PORT", os.environ.get("DASHBOARD_PORT", 5001)))
     print(f"Starting RedCrowWatch Dashboard on http://0.0.0.0:{port}")
     app.run(debug=False, host="0.0.0.0", port=port)
