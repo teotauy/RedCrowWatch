@@ -301,6 +301,46 @@ python3 stream.py
 - See "Performance Tuning" section above
 - Reduce `STREAM_FPS` or increase `DETECT_EVERY`
 
+## Dashboard & Cloud Database
+
+The public dashboard at **https://redcrowwatch.onrender.com** (also accessible via **https://redcrowlabs.com/redcrowwatch/**) shows violation analytics with charts, zone breakdowns, and CSV export.
+
+### Current Architecture
+
+```
+Local Mac:
+  stream.py → data/redcrowwatch.db (SQLite, local only)
+
+Render (public dashboard):
+  dashboard.py → reads committed snapshot of database
+  Daily cron at 6am adds demo violations to keep dashboard fresh
+```
+
+### Next Step: Cloud Database (PostgreSQL)
+
+To make the Render dashboard update in real time from the camera, the SQLite file needs to be replaced with a hosted PostgreSQL database. Both `stream.py` and the Render dashboard would point to the same database, and violations would appear on the public dashboard within seconds of being detected.
+
+**Full implementation plan:** see `CLOUD_DB_PLAN.md`
+
+Summary of what changes:
+1. `src/database.py` — add PostgreSQL support via `psycopg2`, auto-detect via `DATABASE_URL` env var, fall back to SQLite if not set
+2. `requirements.txt` — add `psycopg2-binary>=2.9.9`
+3. `render.yaml` — add PostgreSQL database service, wire `DATABASE_URL` to web service and cron
+4. `.env` — add `DATABASE_URL` (external connection string from Render) when streaming to cloud
+5. `.env.example` — document `DATABASE_URL`
+
+`seed_demo_data.py` and `dashboard.py` require no changes — they use `ViolationDB()` which picks up PostgreSQL automatically once `database.py` is updated.
+
+**To implement with Cursor:** open `CLOUD_DB_PLAN.md` — it contains exact code patterns, SQL translation notes, and step-by-step Render setup instructions written for a fresh implementation session.
+
+### Removing Demo Data (When Going Live)
+
+Once the camera is running and real violations are flowing through PostgreSQL:
+
+1. Delete or disable the `redcrowwatch-daily-seed` cron job in Render dashboard
+2. Remove the amber disclaimer banner from `templates/dashboard.html` (the `div.demo-banner` block)
+3. Remove `DATABASE_URL` from local `.env` if you don't want test runs writing to the cloud database
+
 ## Future Roadmap
 
 Near-term (6-12 months):
